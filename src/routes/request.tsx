@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { AppShell } from "@/components/fixit/AppShell";
 import { MapCanvas } from "@/components/fixit/MapCanvas";
+import { AiScanner } from "@/components/fixit/AiScanner";
 import {
   Zap, Droplet, Snowflake, Hammer, Wrench, Sparkles,
-  ChevronLeft, ChevronRight, Check, UploadCloud, MapPin, ImageIcon, X,
+  ChevronLeft, ChevronRight, Check, UploadCloud, MapPin, ImageIcon, X, Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -37,6 +39,7 @@ function RequestWizard() {
   const [cat, setCat] = useState<string | null>("electrical");
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [scanning, setScanning] = useState(false);
 
   const next = () => setStep((s) => Math.min(2, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
@@ -45,6 +48,7 @@ function RequestWizard() {
     if (!files) return;
     const urls = Array.from(files).slice(0, 4 - images.length).map((f) => URL.createObjectURL(f));
     setImages((prev) => [...prev, ...urls]);
+    setScanning(true);
   };
 
   const selectedCat = CATEGORIES.find((c) => c.key === cat);
@@ -188,18 +192,34 @@ function RequestWizard() {
                 </label>
 
                 {images.length > 0 && (
-                  <div className="mt-3 grid grid-cols-4 gap-2">
-                    {images.map((src, i) => (
-                      <div key={i} className="relative aspect-square rounded-md overflow-hidden border group">
-                        <img src={src} alt="" className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => setImages((arr) => arr.filter((_, j) => j !== i))}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="mt-3 space-y-3">
+                    {/* AI Scanner for first image */}
+                    {scanning && images[0] && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Cpu className="w-4 h-4 text-accent" />
+                          <span className="text-xs font-semibold text-accent">Diagnóstico IA</span>
+                        </div>
+                        <AiScanner imageSrc={images[0]} onComplete={() => setScanning(false)} />
+                      </motion.div>
+                    )}
+                    {/* Thumbnails */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {images.map((src, i) => (
+                        <div key={i} className="relative aspect-square rounded-md overflow-hidden border group">
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => setImages((arr) => arr.filter((_, j) => j !== i))}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

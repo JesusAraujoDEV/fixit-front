@@ -10,9 +10,14 @@ import {
   Menu,
   LogOut,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AuthScreen } from "./AuthScreen";
+
+type UserRole = "client" | "technician" | null;
+const RoleContext = createContext<UserRole>(null);
+export const useUserRole = () => useContext(RoleContext);
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -26,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
   const [loggedOut, setLoggedOut] = useState(false);
+  const [role, setRole] = useState<UserRole>("client");
 
   function handleLogout() {
     toast.success("Sesión cerrada exitosamente", {
@@ -34,29 +40,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setTimeout(() => setLoggedOut(true), 600);
   }
 
-  // Mock login screen
+  // Auth screen (dual entry)
   if (loggedOut) {
     return (
-      <div className="min-h-screen w-full bg-[var(--slate-industrial)] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-surface rounded-xl p-8 shadow-elevated text-center">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-primary grid place-items-center mb-4">
-            <Wrench className="w-7 h-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">FixIt Pro Network</h1>
-          <p className="text-sm text-muted-foreground mt-1 mb-6">Inicia sesión para continuar</p>
-          <button
-            onClick={() => setLoggedOut(false)}
-            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-semibold text-sm hover:opacity-95 transition"
-          >
-            Iniciar Sesión (Demo)
-          </button>
-          <p className="text-xs text-muted-foreground mt-4">Prototipo — sin autenticación real</p>
-        </div>
-      </div>
+      <AuthScreen
+        onLogin={(selectedRole) => {
+          setRole(selectedRole);
+          setLoggedOut(false);
+          toast.success(`Bienvenido de vuelta`, {
+            description: selectedRole === "client" ? "Modo Cliente activado" : "Modo Técnico activado",
+          });
+        }}
+      />
     );
   }
 
   return (
+    <RoleContext.Provider value={role}>
     <div className="min-h-screen w-full bg-background text-foreground">
       {/* Desktop Sidebar */}
       <aside
@@ -206,5 +206,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </ul>
       </nav>
     </div>
+    </RoleContext.Provider>
   );
 }

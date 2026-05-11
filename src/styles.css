@@ -150,3 +150,9 @@
 .leaflet-popup-content {
   margin: 10px 14px;
 }
+
+/* Auth screen radar animation */
+@keyframes radar-ping {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
