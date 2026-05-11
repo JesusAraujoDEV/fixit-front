@@ -8,8 +8,10 @@ import {
   Bell,
   Search,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -23,6 +25,36 @@ const nav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
+  const [loggedOut, setLoggedOut] = useState(false);
+
+  function handleLogout() {
+    toast.success("Sesión cerrada exitosamente", {
+      description: "Has salido de tu cuenta FixIt.",
+    });
+    setTimeout(() => setLoggedOut(true), 600);
+  }
+
+  // Mock login screen
+  if (loggedOut) {
+    return (
+      <div className="min-h-screen w-full bg-[var(--slate-industrial)] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm bg-surface rounded-xl p-8 shadow-elevated text-center">
+          <div className="mx-auto w-14 h-14 rounded-xl bg-primary grid place-items-center mb-4">
+            <Wrench className="w-7 h-7 text-primary-foreground" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">FixIt Pro Network</h1>
+          <p className="text-sm text-muted-foreground mt-1 mb-6">Inicia sesión para continuar</p>
+          <button
+            onClick={() => setLoggedOut(false)}
+            className="w-full h-11 rounded-md bg-primary text-primary-foreground font-semibold text-sm hover:opacity-95 transition"
+          >
+            Iniciar Sesión (Demo)
+          </button>
+          <p className="text-xs text-muted-foreground mt-4">Prototipo — sin autenticación real</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
@@ -81,6 +113,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
+        <div className="px-2 pb-4">
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+              "text-white/60 hover:bg-red-500/15 hover:text-red-300"
+            )}
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Cerrar Sesión</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Top bar */}
@@ -107,6 +151,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button className="relative w-10 h-10 grid place-items-center rounded-md hover:bg-muted">
             <Bell className="w-5 h-5" />
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent" />
+          </button>
+          <button
+            onClick={handleLogout}
+            className="md:hidden w-10 h-10 grid place-items-center rounded-md text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut className="w-5 h-5" />
           </button>
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent grid place-items-center text-white text-sm font-semibold">
             JM
