@@ -1,0 +1,14 @@
+# Nixpacks configuration for Dokploy
+# Forces Node.js 20 (Node 18 is EOL and removed from nixpkgs)
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-10_x"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node server.prod.mjs"
