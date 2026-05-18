@@ -28,13 +28,6 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-const CATEGORY_ICONS: Record<string, typeof Zap> = {
-  electrical: Zap,
-  plumbing: Droplet,
-  hvac: Snowflake,
-  general: Wrench,
-};
-
 function Dashboard() {
   const { status: radarStatus, startSearch } = useRadarSearch();
 
