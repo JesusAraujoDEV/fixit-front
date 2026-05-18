@@ -10,7 +10,7 @@ let socket: Socket | null = null;
 export function connectSocket(token?: string): Socket {
   if (socket?.connected) return socket;
 
-  const authToken = token || localStorage.getItem(TOKEN_KEY);
+  const authToken = token || (typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null);
 
   socket = io(WS_BASE_URL, {
     path: WS_PATH,

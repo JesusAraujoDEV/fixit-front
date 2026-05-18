@@ -14,9 +14,11 @@ const httpClient = axios.create({
 
 // ─── Request Interceptor: inyectar token ────────────────────────────────────
 httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -29,9 +31,10 @@ httpClient.interceptors.response.use(
       const code = error.response.data?.code;
       if (code === "token_expired" || code === "token_invalid") {
         // Limpiar token inválido y forzar re-login
-        localStorage.removeItem(TOKEN_KEY);
-        // Emitir evento custom para que el SessionProvider reaccione
-        window.dispatchEvent(new CustomEvent("fixit:session-expired"));
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(TOKEN_KEY);
+          window.dispatchEvent(new CustomEvent("fixit:session-expired"));
+        }
       }
     }
     return Promise.reject(error);

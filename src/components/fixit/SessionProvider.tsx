@@ -91,7 +91,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [logoutFn]);
 
   const role: UserRole = user?.role ?? "client";
-  const isLoading = sessionQuery.isLoading && !!localStorage.getItem(TOKEN_KEY);
+  const isLoading =
+    sessionQuery.isLoading &&
+    typeof window !== "undefined" &&
+    !!localStorage.getItem(TOKEN_KEY);
 
   return (
     <SessionContext.Provider

@@ -39,13 +39,16 @@ export function useLogin() {
  * Refresca cada 5 minutos para detectar tokens expirados.
  */
 export function useSession() {
+  const hasToken =
+    typeof window !== "undefined" && !!localStorage.getItem(TOKEN_KEY);
+
   return useQuery<User>({
     queryKey: authKeys.session,
     queryFn: async (): Promise<User> => {
       const { data } = await httpClient.get<MeResponse>("/auth/me");
       return data.user;
     },
-    enabled: !!localStorage.getItem(TOKEN_KEY),
+    enabled: hasToken,
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: false,
   });
