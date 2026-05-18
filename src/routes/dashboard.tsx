@@ -6,19 +6,13 @@ import { RadarPulse } from "@/components/fixit/RadarPulse";
 import { TechnicianStatusWidget } from "@/components/fixit/TechnicianStatusWidget";
 import {
   Activity,
-  TrendingUp,
   Users,
   CheckCircle2,
   Clock,
   ArrowUpRight,
-  Wrench,
-  Zap,
-  Droplet,
-  Snowflake,
-  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useKpis, useRadarSearch } from "@/api/hooks";
+import { useRadarSearch, useTechnicianMarkers, useRequestMarkers } from "@/api/hooks";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -42,20 +36,23 @@ const CATEGORY_ICONS: Record<string, typeof Zap> = {
 };
 
 function Dashboard() {
-  const { data: kpis, isLoading: kpisLoading } = useKpis();
   const { status: radarStatus, startSearch } = useRadarSearch();
+
+  // Datos que el cliente SÍ puede consultar
+  const defaultGeo = { lat: 10.1910, lng: -68.0130, radius_km: 10 };
+  const { data: technicians } = useTechnicianMarkers(defaultGeo);
+  const { data: requests } = useRequestMarkers(defaultGeo);
 
   const searching = radarStatus === "searching";
   const techAssigned = radarStatus === "found";
 
-  const kpiCards = kpis
-    ? [
-        { label: "Servicios activos", value: String(kpis.active_services.value), delta: kpis.active_services.delta, icon: Activity, tone: "primary" as const },
-        { label: "Técnicos en línea", value: String(kpis.technicians_online.value), delta: kpis.technicians_online.delta, icon: Users, tone: "success" as const },
-        { label: "Ingresos hoy", value: String(kpis.revenue_today.value), delta: kpis.revenue_today.delta, icon: Clock, tone: "accent" as const },
-        { label: "Reportes pendientes", value: String(kpis.reports_pending.value), delta: kpis.reports_pending.delta, icon: CheckCircle2, tone: "primary" as const },
-      ]
-    : [];
+  // Stats derivados de datos reales del cliente
+  const stats = [
+    { label: "Solicitudes cercanas", value: String(requests?.length ?? 0), delta: "en tu zona", icon: Activity, tone: "primary" as const },
+    { label: "Técnicos disponibles", value: String(technicians?.length ?? 0), delta: "online", icon: Users, tone: "success" as const },
+    { label: "Radio de búsqueda", value: "10 km", delta: "Valencia", icon: Clock, tone: "accent" as const },
+    { label: "Resp. estimada", value: "~8 min", delta: "promedio", icon: CheckCircle2, tone: "primary" as const },
+  ];
 
   return (
     <AppShell>
@@ -80,44 +77,39 @@ function Dashboard() {
           </div>
         </header>
 
-        {/* Stats from API */}
+        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {kpisLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-28" />
-              ))
-            : kpiCards.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <motion.div
-                    key={s.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-surface border rounded-lg p-4 shadow-soft"
+          {stats.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-surface border rounded-lg p-4 shadow-soft"
+              >
+                <div className="flex items-center justify-between">
+                  <div
+                    className={`w-9 h-9 rounded-md grid place-items-center ${
+                      s.tone === "accent"
+                        ? "bg-accent/15 text-accent"
+                        : s.tone === "success"
+                          ? "bg-[color:var(--success)]/15 text-[color:var(--success)]"
+                          : "bg-primary/10 text-primary"
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`w-9 h-9 rounded-md grid place-items-center ${
-                          s.tone === "accent"
-                            ? "bg-accent/15 text-accent"
-                            : s.tone === "success"
-                              ? "bg-[color:var(--success)]/15 text-[color:var(--success)]"
-                              : "bg-primary/10 text-primary"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="text-[11px] font-semibold text-[color:var(--success)] inline-flex items-center gap-0.5">
-                        <TrendingUp className="w-3 h-3" />
-                        {s.delta}
-                      </span>
-                    </div>
-                    <p className="text-2xl font-bold mt-3 tracking-tight">{s.value}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-                  </motion.div>
-                );
-              })}
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-[color:var(--success)] inline-flex items-center gap-0.5">
+                    {s.delta}
+                  </span>
+                </div>
+                <p className="text-2xl font-bold mt-3 tracking-tight">{s.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Map with Radar */}

@@ -3,8 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { cn } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
-import { useTechnicianMarkers, useRequestMarkers, useHeatmapZones } from "@/api/hooks";
-import type { TechnicianMarker, RequestMarker, HeatmapZone, GeoParams } from "@/api/types";
+import { useTechnicianMarkers, useRequestMarkers } from "@/api/hooks";
+import type { TechnicianMarker, RequestMarker, GeoParams } from "@/api/types";
 
 // Valencia, Carabobo — centro por defecto
 const VALENCIA_CENTER: [number, number] = [10.1910, -68.0130];
@@ -79,7 +79,6 @@ export function MapCanvas({
   const { data: requests } = useRequestMarkers(
     variant === "requests" || variant === "dark" ? defaultParams : null,
   );
-  const { data: heatmapZones } = useHeatmapZones();
 
   if (offline) {
     return (
