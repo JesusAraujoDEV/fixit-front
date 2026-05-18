@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { AppShell } from "@/components/fixit/AppShell";
+import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import { MapCanvas } from "@/components/fixit/MapCanvas";
 import { AiScanner } from "@/components/fixit/AiScanner";
 import {
   Zap, Droplet, Snowflake, Hammer, Wrench, Sparkles,
   ChevronLeft, ChevronRight, Check, UploadCloud, MapPin, ImageIcon, X, Cpu,
+  Star, Shield, Award, User, Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -18,8 +19,109 @@ export const Route = createFileRoute("/request")({
       { name: "description", content: "Publica una solicitud de servicio técnico en 3 pasos: qué, dónde y detalles." },
     ],
   }),
-  component: RequestWizard,
+  component: RequestPage,
 });
+
+// Wrapper that shows different content per role
+function RequestPage() {
+  const role = useUserRole();
+
+  if (role === "technician") {
+    return (
+      <AppShell>
+        <TechProProfile />
+      </AppShell>
+    );
+  }
+
+  // Client and Admin see the request wizard (admin for testing)
+  return <RequestWizard />;
+}
+
+// ─── Technician Pro Profile ───
+function TechProProfile() {
+  const skills = ["Electricidad Residencial", "Electricidad Industrial", "Tableros", "Iluminación LED", "Cableado Estructurado"];
+  const certifications = [
+    { name: "Electricista Certificado Nivel III", year: "2022" },
+    { name: "Seguridad Eléctrica Industrial", year: "2021" },
+    { name: "Instalaciones Fotovoltaicas", year: "2023" },
+  ];
+
+  return (
+    <section className="px-4 md:px-6 py-6 space-y-5 max-w-3xl">
+      <header>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Profesional</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Mi Perfil Pro</h1>
+      </header>
+
+      {/* Profile card */}
+      <div className="bg-surface border rounded-lg shadow-soft p-6 flex items-center gap-5">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent to-orange-700 grid place-items-center text-white text-2xl font-bold">
+          JM
+        </div>
+        <div className="flex-1">
+          <h2 className="text-xl font-bold tracking-tight">Juan Martínez</h2>
+          <p className="text-sm text-muted-foreground">Técnico Electricista · Nivel Pro</p>
+          <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
+            <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> 4.92 (412 reseñas)</span>
+            <span className="inline-flex items-center gap-1 text-[color:var(--success)]"><Shield className="w-3.5 h-3.5" /> Verificado</span>
+            <span className="inline-flex items-center gap-1"><Award className="w-3.5 h-3.5 text-primary" /> Top 5%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Trabajos", value: "412" },
+          { label: "Aceptación", value: "96%" },
+          { label: "Resp. media", value: "4 min" },
+          { label: "Repetición", value: "78%" },
+        ].map((s) => (
+          <div key={s.label} className="bg-surface border rounded-lg p-3 shadow-soft text-center">
+            <p className="text-lg font-bold">{s.value}</p>
+            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Skills */}
+      <div className="bg-surface border rounded-lg shadow-soft p-5">
+        <h3 className="font-semibold mb-3">Habilidades</h3>
+        <div className="flex flex-wrap gap-2">
+          {skills.map((skill) => (
+            <span key={skill} className="px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+              {skill}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Certifications */}
+      <div className="bg-surface border rounded-lg shadow-soft p-5">
+        <h3 className="font-semibold mb-3">Certificaciones</h3>
+        <div className="space-y-3">
+          {certifications.map((cert) => (
+            <div key={cert.name} className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-md bg-accent/10 text-accent grid place-items-center shrink-0">
+                <Award className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{cert.name}</p>
+                <p className="text-xs text-muted-foreground">{cert.year}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Edit button */}
+      <button className="w-full h-11 rounded-md border text-sm font-medium hover:bg-muted transition inline-flex items-center justify-center gap-2">
+        <SettingsIcon className="w-4 h-4" /> Editar Perfil Profesional
+      </button>
+    </section>
+  );
+}
 
 type Cat = { key: string; label: string; icon: LucideIcon };
 const CATEGORIES: Cat[] = [

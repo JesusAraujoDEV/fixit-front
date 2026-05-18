@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Wrench,
   Bell,
@@ -6,19 +6,20 @@ import {
   Menu,
   LogOut,
   Home,
-  MessageCircle,
   PlusCircle,
   User,
+  ClipboardList,
   Briefcase,
   Map,
-  TrendingUp,
+  DollarSign,
+  Star,
   ShieldCheck,
   Activity,
   Users,
+  FileWarning,
   Settings,
-  LayoutDashboard,
 } from "lucide-react";
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -29,25 +30,38 @@ export const useUserRole = () => useContext(RoleContext);
 
 type NavItem = { to: string; label: string; icon: typeof Home };
 
+// Client: simple, friendly — only sees their own stuff
 const CLIENT_NAV: NavItem[] = [
   { to: "/", label: "Inicio", icon: Home },
-  { to: "/request", label: "Solicitar", icon: PlusCircle },
-  { to: "/jobs", label: "Mis Servicios", icon: MessageCircle },
-  { to: "/profile", label: "Perfil", icon: User },
+  { to: "/request", label: "Nueva Solicitud", icon: PlusCircle },
+  { to: "/jobs", label: "Mis Solicitudes", icon: ClipboardList },
+  { to: "/profile", label: "Mi Perfil", icon: User },
 ];
 
+// Technician: dense, action-oriented
 const TECH_NAV: NavItem[] = [
   { to: "/pro", label: "Dashboard", icon: Briefcase },
-  { to: "/jobs", label: "Trabajos", icon: Map },
-  { to: "/profile", label: "Métricas", icon: TrendingUp },
+  { to: "/jobs", label: "Mis Trabajos", icon: Map },
+  { to: "/profile", label: "Ganancias", icon: DollarSign },
+  { to: "/request", label: "Mi Perfil Pro", icon: Star },
 ];
 
+// Admin: command center
 const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", icon: Activity },
-  { to: "/", label: "Vista Global", icon: LayoutDashboard },
-  { to: "/pro", label: "Técnicos", icon: Users },
+  { to: "/", label: "Red Global", icon: Users },
+  { to: "/jobs", label: "Transacciones", icon: FileWarning },
   { to: "/profile", label: "Configuración", icon: Settings },
 ];
+
+// Landing page per role
+function getLandingRoute(role: UserRole): string {
+  switch (role) {
+    case "client": return "/";
+    case "technician": return "/pro";
+    case "admin": return "/admin";
+  }
+}
 
 function getNavForRole(role: UserRole): NavItem[] {
   switch (role) {
@@ -60,7 +74,7 @@ function getNavForRole(role: UserRole): NavItem[] {
 function getRoleLabel(role: UserRole): string {
   switch (role) {
     case "client": return "Cliente";
-    case "technician": return "Técnico";
+    case "technician": return "Técnico Pro";
     case "admin": return "Administrador";
   }
 }
@@ -73,13 +87,35 @@ function getRoleColor(role: UserRole): string {
   }
 }
 
+function getRoleIcon(role: UserRole) {
+  switch (role) {
+    case "client": return Home;
+    case "technician": return Wrench;
+    case "admin": return ShieldCheck;
+  }
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [loggedOut, setLoggedOut] = useState(true); // Start at auth screen
+  const [loggedOut, setLoggedOut] = useState(true);
   const [role, setRole] = useState<UserRole>("client");
 
   const nav = getNavForRole(role);
+  const isAdmin = role === "admin";
+  const RoleIcon = getRoleIcon(role);
+
+  // Navigate to landing page when role changes
+  useEffect(() => {
+    if (!loggedOut) {
+      const landing = getLandingRoute(role);
+      if (pathname !== landing) {
+        navigate({ to: landing });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, loggedOut]);
 
   function handleLogout() {
     toast.success("Sesión cerrada exitosamente", {
@@ -103,9 +139,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Admin gets a special dark theme wrapper
-  const isAdmin = role === "admin";
-
   return (
     <RoleContext.Provider value={role}>
       <AnimatePresence mode="wait">
@@ -128,16 +161,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               isAdmin ? "bg-[#0d1117] border-r border-emerald-500/10" : "bg-[var(--slate-industrial)]"
             )}
           >
+            {/* Logo */}
             <div className="flex items-center gap-2 px-4 h-16 border-b border-white/10">
               <div className={cn("grid place-items-center w-9 h-9 rounded-md shrink-0", getRoleColor(role))}>
-                {role === "admin" ? <ShieldCheck className="w-5 h-5 text-white" /> : <Wrench className="w-5 h-5 text-white" />}
+                <RoleIcon className="w-5 h-5 text-white" />
               </div>
               {!collapsed && (
                 <div className="flex flex-col leading-tight">
                   <span className="font-bold tracking-tight text-base">FixIt</span>
                   <span className={cn(
                     "text-[10px] uppercase tracking-widest",
-                    isAdmin ? "text-emerald-400/60" : "text-white/50"
+                    isAdmin ? "text-emerald-400/60" : role === "technician" ? "text-accent/60" : "text-white/50"
                   )}>
                     {getRoleLabel(role)}
                   </span>
@@ -151,6 +185,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Menu className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Navigation */}
             <nav className="flex-1 px-2 py-4 space-y-1">
               {nav.map((n) => {
                 const Icon = n.icon;
@@ -164,7 +200,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       active
                         ? isAdmin
                           ? "bg-emerald-500/15 text-emerald-400 shadow-soft"
-                          : "bg-primary text-primary-foreground shadow-soft"
+                          : role === "technician"
+                            ? "bg-accent/15 text-accent shadow-soft"
+                            : "bg-primary text-primary-foreground shadow-soft"
                         : "text-white/70 hover:bg-white/5 hover:text-white"
                     )}
                   >
@@ -179,7 +217,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {!collapsed && (
               <div className={cn(
                 "m-3 p-3 rounded-md border",
-                isAdmin ? "bg-emerald-500/5 border-emerald-500/20" : "bg-white/5 border-white/10"
+                isAdmin ? "bg-emerald-500/5 border-emerald-500/20"
+                  : role === "technician" ? "bg-accent/5 border-accent/20"
+                  : "bg-white/5 border-white/10"
               )}>
                 <p className="text-xs text-white/60 mb-1">Sesión activa</p>
                 <div className="flex items-center gap-2">
@@ -189,6 +229,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
 
+            {/* Logout */}
             <div className="px-2 pb-4">
               <button
                 onClick={handleLogout}
@@ -213,14 +254,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <div className="flex md:hidden items-center gap-2">
               <div className={cn("grid place-items-center w-9 h-9 rounded-md", getRoleColor(role))}>
-                {role === "admin" ? <ShieldCheck className="w-5 h-5 text-white" /> : <Wrench className="w-5 h-5 text-white" />}
+                <RoleIcon className="w-5 h-5 text-white" />
               </div>
               <span className={cn("font-bold tracking-tight", isAdmin ? "text-white" : "text-foreground")}>FixIt</span>
             </div>
             <div className="hidden md:flex items-center flex-1 max-w-md relative">
               <Search className={cn("absolute left-3 w-4 h-4", isAdmin ? "text-white/40" : "text-muted-foreground")} />
               <input
-                placeholder={isAdmin ? "Buscar usuarios, transacciones…" : "Buscar servicios, técnicos, tickets…"}
+                placeholder={
+                  isAdmin ? "Buscar usuarios, transacciones…"
+                  : role === "technician" ? "Buscar trabajos, clientes…"
+                  : "Buscar técnicos, servicios…"
+                }
                 className={cn(
                   "w-full h-10 pl-9 pr-3 rounded-md border border-transparent text-sm outline-none transition",
                   isAdmin
@@ -249,9 +294,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
               <div className={cn(
                 "w-9 h-9 rounded-full grid place-items-center text-white text-sm font-semibold",
-                isAdmin ? "bg-gradient-to-br from-emerald-500 to-emerald-700" : "bg-gradient-to-br from-primary to-accent"
+                role === "admin" ? "bg-gradient-to-br from-emerald-500 to-emerald-700"
+                  : role === "technician" ? "bg-gradient-to-br from-accent to-orange-700"
+                  : "bg-gradient-to-br from-primary to-blue-700"
               )}>
-                {role === "admin" ? "AD" : role === "technician" ? "TC" : "CL"}
+                {role === "admin" ? "AD" : role === "technician" ? "JM" : "CL"}
               </div>
             </div>
           </header>
@@ -271,7 +318,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "md:hidden fixed bottom-0 inset-x-0 z-40 border-t shadow-elevated",
             isAdmin ? "bg-[#0d1117] border-emerald-500/10" : "bg-surface border-border"
           )}>
-            <ul className={cn("grid", `grid-cols-${nav.length}`)}>
+            <ul className="grid" style={{ gridTemplateColumns: `repeat(${nav.length}, 1fr)` }}>
               {nav.map((n) => {
                 const Icon = n.icon;
                 const active = pathname === n.to;
@@ -282,7 +329,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 py-2.5 w-full text-[10px] font-medium",
                         active
-                          ? isAdmin ? "text-emerald-400" : "text-primary"
+                          ? isAdmin ? "text-emerald-400"
+                            : role === "technician" ? "text-accent"
+                            : "text-primary"
                           : isAdmin ? "text-white/50" : "text-muted-foreground"
                       )}
                     >
