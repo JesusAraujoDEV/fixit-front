@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import { MapCanvas } from "@/components/fixit/MapCanvas";
@@ -10,6 +10,9 @@ import {
   Star, Shield, Award, User, Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/request")({
@@ -135,6 +138,60 @@ const CATEGORIES: Cat[] = [
 
 const STEPS = ["Qué y Dónde", "Detalles", "Revisión"];
 
+// ─── Location Picker with clickable map ───
+const pinIcon = L.divIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#FF6600" stroke="white" stroke-width="1.5"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3" fill="white" stroke="#FF6600" stroke-width="1.5"/></svg>`,
+  className: "custom-leaflet-marker",
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+});
+
+function ClickHandler({ onLocationChange }: { onLocationChange: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onLocationChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+function LocationPicker({
+  lat,
+  lng,
+  interactive,
+  onLocationChange,
+}: {
+  lat: number;
+  lng: number;
+  interactive: boolean;
+  onLocationChange: (lat: number, lng: number) => void;
+}) {
+  return (
+    <div className="h-44 relative z-0">
+      <MapContainer
+        center={[lat, lng]}
+        zoom={14}
+        scrollWheelZoom={interactive}
+        dragging={interactive}
+        className="h-full w-full"
+        style={{ height: "100%", width: "100%", cursor: interactive ? "crosshair" : "default" }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <Marker position={[lat, lng]} icon={pinIcon} />
+        {interactive && <ClickHandler onLocationChange={onLocationChange} />}
+      </MapContainer>
+      {interactive && (
+        <div className="absolute top-2 left-2 z-[1000] px-2 py-1 rounded bg-accent/90 text-white text-[10px] font-bold">
+          Haz clic para mover el pin
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RequestWizard() {
   const [step, setStep] = useState(0);
   const [need, setNeed] = useState("");
@@ -142,6 +199,11 @@ function RequestWizard() {
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [location, setLocation] = useState<{ lat: number; lng: number }>({
+    lat: 10.1910,
+    lng: -68.0130,
+  });
+  const [pickingLocation, setPickingLocation] = useState(false);
 
   const next = () => setStep((s) => Math.min(2, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
@@ -246,13 +308,35 @@ function RequestWizard() {
 
               <div>
                 <p className="text-sm font-semibold mb-2">Ubicación del servicio</p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {pickingLocation
+                    ? "Haz clic en el mapa para seleccionar la ubicación"
+                    : "Ubicación seleccionada. Presiona \"Cambiar\" para mover el pin."}
+                </p>
                 <div className="rounded-md overflow-hidden border">
-                  <MapCanvas variant="dark" className="h-44" />
+                  <LocationPicker
+                    lat={location.lat}
+                    lng={location.lng}
+                    interactive={pickingLocation}
+                    onLocationChange={(lat, lng) => {
+                      setLocation({ lat, lng });
+                      setPickingLocation(false);
+                    }}
+                  />
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <MapPin className="w-3.5 h-3.5 text-accent" />
-                  Av. Insurgentes Sur 1234, CDMX
-                  <button className="ml-auto text-primary font-semibold">Cambiar</button>
+                  {location.lat.toFixed(4)}, {location.lng.toFixed(4)} — Valencia, Carabobo
+                  <button
+                    type="button"
+                    onClick={() => setPickingLocation(!pickingLocation)}
+                    className={cn(
+                      "ml-auto font-semibold",
+                      pickingLocation ? "text-accent" : "text-primary",
+                    )}
+                  >
+                    {pickingLocation ? "Cancelar" : "Cambiar"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -341,7 +425,7 @@ function RequestWizard() {
                   </p>
                   <h3 className="font-semibold leading-snug">{need || "Sin título"}</h3>
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> Av. Insurgentes Sur 1234, CDMX
+                    <MapPin className="w-3 h-3" /> {location.lat.toFixed(4)}, {location.lng.toFixed(4)} — Valencia
                   </p>
                 </div>
               </div>
