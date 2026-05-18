@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type Job = {
   id: string;
-  category: "Electricidad" | "Plomería" | "Climatización" | "General" | "Cerrajería";
+  category: string;
   title: string;
   distanceKm: number;
   expiresInMin: number;
@@ -12,16 +12,38 @@ export type Job = {
   urgent?: boolean;
 };
 
-const CATEGORY_ICONS: Record<Job["category"], LucideIcon> = {
+const CATEGORY_MAP: Record<string, string> = {
+  electrical: "Electricidad",
+  plumbing: "Plomería",
+  hvac: "Climatización",
+  general: "General",
+  locksmith: "Cerrajería",
+  carpentry: "Carpintería",
+  painting: "Pintura",
+  appliance_repair: "Línea Blanca",
+  cleaning: "Limpieza",
+};
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Electricidad: Zap,
   Plomería: Droplet,
   Climatización: Snowflake,
   General: Hammer,
   Cerrajería: Wrench,
+  electrical: Zap,
+  plumbing: Droplet,
+  hvac: Snowflake,
+  general: Hammer,
+  locksmith: Wrench,
+  carpentry: Hammer,
+  painting: Hammer,
+  appliance_repair: Wrench,
+  cleaning: Hammer,
 };
 
 export function JobCard({ job, onAccept }: { job: Job; onAccept?: (id: string) => void }) {
-  const Icon = CATEGORY_ICONS[job.category];
+  const Icon = CATEGORY_ICONS[job.category] ?? Hammer;
+  const displayCategory = CATEGORY_MAP[job.category] ?? job.category;
   const expiringSoon = job.expiresInMin <= 3;
 
   return (
@@ -38,7 +60,7 @@ export function JobCard({ job, onAccept }: { job: Job; onAccept?: (id: string) =
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              {job.category}
+              {displayCategory}
             </span>
             {job.urgent && (
               <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent text-accent-foreground">

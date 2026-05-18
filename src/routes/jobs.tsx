@@ -1,31 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import { JobCard, type Job } from "@/components/fixit/JobCard";
 import {
   Clock, CheckCircle2, AlertCircle, DollarSign, TrendingUp,
-  FileText, Search, Filter,
+  Search, Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  useMyRequests,
+  useAvailableJobs,
+  useCompletedJobs,
+  useTransactions,
+  useTransactionsSummary,
+} from "@/api/hooks";
+import type { RequestStatus } from "@/api/types";
 
 export const Route = createFileRoute("/jobs")({
   head: () => ({
     meta: [
-      { title: "Trabajos — FixIt" },
-      { name: "description", content: "Historial y trabajos activos en FixIt." },
+      { title: "Trabajos — FixHub" },
+      { name: "description", content: "Historial y trabajos activos en FixHub." },
     ],
   }),
   component: JobsPage,
 });
 
 // ─── Client: "Mis Solicitudes" ───
-const CLIENT_REQUESTS = [
-  { id: "s1", title: "Reparación de tablero eléctrico", category: "Electricidad", status: "active" as const, tech: "Carlos M.", time: "Hace 2 horas", price: "$55" },
-  { id: "s2", title: "Fuga en tubería del baño", category: "Plomería", status: "completed" as const, tech: "María G.", time: "Hace 3 días", price: "$40" },
-  { id: "s3", title: "Instalación de aire acondicionado", category: "Climatización", status: "completed" as const, tech: "José R.", time: "Hace 1 semana", price: "$120" },
-  { id: "s4", title: "Cambio de cerradura principal", category: "Cerrajería", status: "cancelled" as const, tech: null, time: "Hace 2 semanas", price: "—" },
-];
-
 function ClientJobsView() {
+  const [statusFilter, setStatusFilter] = useState<RequestStatus | undefined>(undefined);
+  const { data: requests, isLoading } = useMyRequests(statusFilter);
+
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-4xl">
       <header>
@@ -38,74 +43,105 @@ function ClientJobsView() {
 
       {/* Filters */}
       <div className="flex items-center gap-2">
-        <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium">
+        <button
+          onClick={() => setStatusFilter(undefined)}
+          className={cn(
+            "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium",
+            !statusFilter ? "bg-primary text-primary-foreground" : "border hover:bg-muted",
+          )}
+        >
           Todas
         </button>
-        <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium hover:bg-muted">
+        <button
+          onClick={() => setStatusFilter("active")}
+          className={cn(
+            "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium",
+            statusFilter === "active" ? "bg-primary text-primary-foreground" : "border hover:bg-muted",
+          )}
+        >
           <Clock className="w-3 h-3" /> Activas
         </button>
-        <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium hover:bg-muted">
+        <button
+          onClick={() => setStatusFilter("completed")}
+          className={cn(
+            "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium",
+            statusFilter === "completed" ? "bg-primary text-primary-foreground" : "border hover:bg-muted",
+          )}
+        >
           <CheckCircle2 className="w-3 h-3" /> Completadas
         </button>
       </div>
 
       {/* Request list */}
       <div className="space-y-3">
-        {CLIENT_REQUESTS.map((req) => (
-          <div key={req.id} className="bg-surface border rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {req.category}
-                  </span>
-                  <span className={cn(
-                    "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                    req.status === "active" ? "bg-accent/15 text-accent" :
-                    req.status === "completed" ? "bg-[color:var(--success)]/15 text-[color:var(--success)]" :
-                    "bg-muted text-muted-foreground"
-                  )}>
-                    {req.status === "active" ? "En curso" : req.status === "completed" ? "Completada" : "Cancelada"}
-                  </span>
+        {isLoading
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-24" />
+            ))
+          : requests?.map((req) => (
+              <div key={req.id} className="bg-surface border rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {req.category}
+                      </span>
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                        req.status === "active" ? "bg-accent/15 text-accent" :
+                        req.status === "completed" ? "bg-[color:var(--success)]/15 text-[color:var(--success)]" :
+                        "bg-muted text-muted-foreground",
+                      )}>
+                        {req.status === "active" ? "En curso" : req.status === "completed" ? "Completada" : "Cancelada"}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-foreground">{req.title}</h3>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      {req.technician && <span>Técnico: <strong className="text-foreground">{req.technician.name}</strong></span>}
+                      <span>{new Date(req.created_at).toLocaleDateString("es-VE")}</span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-muted-foreground">Costo</p>
+                    <p className="font-bold">{req.price ?? "—"}</p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-foreground">{req.title}</h3>
-                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                  {req.tech && <span>Técnico: <strong className="text-foreground">{req.tech}</strong></span>}
-                  <span>{req.time}</span>
-                </div>
+                {req.status === "active" && req.eta_minutes && (
+                  <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <span className="text-xs text-accent font-medium">Técnico en camino — {req.eta_minutes} min</span>
+                  </div>
+                )}
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-xs text-muted-foreground">Costo</p>
-                <p className="font-bold">{req.price}</p>
-              </div>
-            </div>
-            {req.status === "active" && (
-              <div className="mt-3 pt-3 border-t flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span className="text-xs text-accent font-medium">Técnico en camino — 5 min</span>
-              </div>
-            )}
+            )) ?? null}
+        {!isLoading && requests?.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            No tienes solicitudes aún. ¡Crea tu primera!
           </div>
-        ))}
+        )}
       </div>
     </section>
   );
 }
 
 // ─── Technician: "Mis Trabajos" ───
-const TECH_JOBS: Job[] = [
-  { id: "j1", category: "Electricidad", title: "Tablero eléctrico hace cortocircuito", distanceKm: 1.2, expiresInMin: 2, payout: "$45–70", urgent: true },
-  { id: "j2", category: "Plomería", title: "Fuga bajo el lavabo de cocina", distanceKm: 2.8, expiresInMin: 8, payout: "$35–55" },
-  { id: "j3", category: "Climatización", title: "Aire acondicionado no enfría", distanceKm: 3.4, expiresInMin: 12, payout: "$60–90" },
-];
-
-const TECH_COMPLETED = [
-  { id: "c1", title: "Instalación de luminarias LED", earnings: "$75", rating: 5, time: "Hoy, 10:30" },
-  { id: "c2", title: "Reparación de interruptor", earnings: "$40", rating: 5, time: "Hoy, 08:15" },
-  { id: "c3", title: "Cableado de oficina", earnings: "$120", rating: 4, time: "Ayer, 16:00" },
-];
-
 function TechJobsView() {
+  const { data: availableJobs, isLoading: loadingAvailable } = useAvailableJobs({
+    lat: 10.1910,
+    lng: -68.0130,
+  });
+  const { data: completedJobs, isLoading: loadingCompleted } = useCompletedJobs();
+
+  const jobs: Job[] = (availableJobs ?? []).map((j) => ({
+    id: j.id,
+    category: j.category,
+    title: j.title,
+    distanceKm: j.distance_km,
+    expiresInMin: j.expires_in_min,
+    payout: j.payout,
+    urgent: j.urgent,
+  }));
+
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-5xl">
       <header className="flex items-end justify-between gap-4">
@@ -127,32 +163,47 @@ function TechJobsView() {
           Disponibles cerca de ti
         </h2>
         <div className="grid md:grid-cols-2 gap-3">
-          {TECH_JOBS.map((j) => <JobCard key={j.id} job={j} />)}
+          {loadingAvailable
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-24" />
+              ))
+            : jobs.length > 0
+              ? jobs.map((j) => <JobCard key={j.id} job={j} />)
+              : <p className="text-sm text-muted-foreground col-span-2">No hay trabajos disponibles en este momento.</p>}
         </div>
       </div>
 
-      {/* Completed today */}
+      {/* Completed */}
       <div>
         <h2 className="font-semibold mb-3 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
           Completados recientemente
         </h2>
         <div className="space-y-2">
-          {TECH_COMPLETED.map((job) => (
-            <div key={job.id} className="bg-surface border rounded-lg p-4 shadow-soft flex items-center gap-3">
-              <div className="w-10 h-10 rounded-md bg-[color:var(--success)]/10 text-[color:var(--success)] grid place-items-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{job.title}</p>
-                <p className="text-xs text-muted-foreground">{job.time}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="font-bold text-[color:var(--success)]">{job.earnings}</p>
-                <p className="text-xs text-muted-foreground">{"⭐".repeat(job.rating)}</p>
-              </div>
-            </div>
-          ))}
+          {loadingCompleted
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-16" />
+              ))
+            : (completedJobs ?? []).map((job) => (
+                <div key={job.id} className="bg-surface border rounded-lg p-4 shadow-soft flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md bg-[color:var(--success)]/10 text-[color:var(--success)] grid place-items-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{job.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(job.completed_at).toLocaleDateString("es-VE")}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-[color:var(--success)]">{job.earnings}</p>
+                    <p className="text-xs text-muted-foreground">{"⭐".repeat(job.rating)}</p>
+                  </div>
+                </div>
+              ))}
+          {!loadingCompleted && completedJobs?.length === 0 && (
+            <p className="text-sm text-muted-foreground">Aún no has completado trabajos.</p>
+          )}
         </div>
       </div>
     </section>
@@ -160,16 +211,10 @@ function TechJobsView() {
 }
 
 // ─── Admin: "Transacciones" ───
-const ADMIN_TRANSACTIONS = [
-  { id: "TX-001", client: "María López", tech: "Carlos M.", service: "Electricidad", amount: "$65", commission: "$6.50", status: "completed", time: "14:32" },
-  { id: "TX-002", client: "José García", tech: "Ana P.", service: "Plomería", amount: "$45", commission: "$4.50", status: "in_progress", time: "14:20" },
-  { id: "TX-003", client: "Laura Díaz", tech: "Pedro R.", service: "Climatización", amount: "$90", commission: "$9.00", status: "completed", time: "14:05" },
-  { id: "TX-004", client: "Roberto S.", tech: "María G.", service: "General", amount: "$35", commission: "$3.50", status: "disputed", time: "13:48" },
-  { id: "TX-005", client: "Carmen Ruiz", tech: "José R.", service: "Cerrajería", amount: "$55", commission: "$5.50", status: "completed", time: "13:30" },
-  { id: "TX-006", client: "Ana Torres", tech: "Diego M.", service: "Electricidad", amount: "$80", commission: "$8.00", status: "completed", time: "13:15" },
-];
-
 function AdminJobsView() {
+  const { data: txData } = useTransactions({ page: 1, per_page: 10 });
+  const { data: txSummary } = useTransactionsSummary();
+
   return (
     <section className="px-4 md:px-6 py-6 space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -179,13 +224,13 @@ function AdminJobsView() {
           </p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Transacciones</h1>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <div className="flex items-center gap-1.5 text-emerald-400">
+        {txSummary && (
+          <div className="flex items-center gap-1.5 text-emerald-400 text-sm">
             <DollarSign className="w-4 h-4" />
-            <span className="font-bold">$37.50</span>
+            <span className="font-bold">{txSummary.today_commission}</span>
             <span className="text-white/40 text-xs">comisiones hoy</span>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Summary cards */}
@@ -194,67 +239,64 @@ function AdminJobsView() {
           <div className="flex items-center gap-2 text-xs text-white/40 mb-1">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Hoy
           </div>
-          <p className="text-xl font-bold text-white">24</p>
+          <p className="text-xl font-bold text-white">{txSummary?.today_count ?? "—"}</p>
           <p className="text-[11px] text-white/40">transacciones</p>
         </div>
         <div className="rounded-lg border border-emerald-500/20 bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-xs text-white/40 mb-1">
             <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Volumen
           </div>
-          <p className="text-xl font-bold text-white">$1,420</p>
+          <p className="text-xl font-bold text-white">{txSummary?.today_volume ?? "—"}</p>
           <p className="text-[11px] text-white/40">total movido</p>
         </div>
         <div className="rounded-lg border border-red-500/20 bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-xs text-white/40 mb-1">
             <AlertCircle className="w-3.5 h-3.5 text-red-400" /> Disputas
           </div>
-          <p className="text-xl font-bold text-red-400">1</p>
-          <p className="text-[11px] text-white/40">pendiente</p>
+          <p className="text-xl font-bold text-red-400">{txSummary?.disputes_pending ?? 0}</p>
+          <p className="text-[11px] text-white/40">pendientes</p>
         </div>
       </div>
 
       {/* Table */}
       <div className="rounded-xl border border-emerald-500/20 bg-white/[0.02] overflow-hidden">
-        <div className="px-4 py-3 border-b border-emerald-500/10 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-emerald-500/10">
           <h2 className="font-semibold text-white text-sm">Registro de Transacciones</h2>
-          <button className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20">
-            Exportar
-          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-white/5 text-white/40">
-                <th className="text-left px-4 py-2.5 font-medium">ID</th>
                 <th className="text-left px-4 py-2.5 font-medium">Cliente</th>
                 <th className="text-left px-4 py-2.5 font-medium">Técnico</th>
+                <th className="text-left px-4 py-2.5 font-medium">Servicio</th>
                 <th className="text-left px-4 py-2.5 font-medium">Monto</th>
                 <th className="text-left px-4 py-2.5 font-medium">Comisión</th>
                 <th className="text-left px-4 py-2.5 font-medium">Estado</th>
-                <th className="text-left px-4 py-2.5 font-medium">Hora</th>
               </tr>
             </thead>
             <tbody>
-              {ADMIN_TRANSACTIONS.map((tx) => (
+              {txData?.data.map((tx) => (
                 <tr key={tx.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-4 py-2.5 font-mono text-white/50">{tx.id}</td>
                   <td className="px-4 py-2.5 text-white/80">{tx.client}</td>
-                  <td className="px-4 py-2.5 text-white/80">{tx.tech}</td>
+                  <td className="px-4 py-2.5 text-white/80">{tx.technician}</td>
+                  <td className="px-4 py-2.5 text-white/60">{tx.service}</td>
                   <td className="px-4 py-2.5 font-bold text-white">{tx.amount}</td>
                   <td className="px-4 py-2.5 font-bold text-emerald-400">{tx.commission}</td>
                   <td className="px-4 py-2.5">
                     <span className={cn(
                       "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold",
-                      tx.status === "completed" ? "bg-emerald-500/15 text-emerald-400" :
-                      tx.status === "in_progress" ? "bg-blue-500/15 text-blue-400" :
-                      "bg-red-500/15 text-red-400"
+                      tx.status === "paid" ? "bg-emerald-500/15 text-emerald-400" :
+                      tx.status === "pending" ? "bg-blue-500/15 text-blue-400" :
+                      "bg-red-500/15 text-red-400",
                     )}>
-                      {tx.status === "completed" ? "✓ OK" : tx.status === "in_progress" ? "⏳ Curso" : "⚠ Disputa"}
+                      {tx.status === "paid" ? "✓ Pagado" : tx.status === "pending" ? "⏳ Pendiente" : tx.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-white/40">{tx.time}</td>
                 </tr>
-              ))}
+              )) ?? (
+                <tr><td colSpan={6} className="px-4 py-4 text-white/30 text-center">Cargando...</td></tr>
+              )}
             </tbody>
           </table>
         </div>

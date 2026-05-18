@@ -3,34 +3,14 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { cn } from "@/lib/utils";
 import "leaflet/dist/leaflet.css";
+import { useTechnicianMarkers, useRequestMarkers, useHeatmapZones } from "@/api/hooks";
+import type { TechnicianMarker, RequestMarker, HeatmapZone, GeoParams } from "@/api/types";
 
-// Valencia, Carabobo coordinates
-const VALENCIA_CENTER: [number, number] = [10.2310, -68.0146];
+// Valencia, Carabobo — centro por defecto
+const VALENCIA_CENTER: [number, number] = [10.1910, -68.0130];
 const DEFAULT_ZOOM = 13;
 
-type MarkerData = {
-  id: string;
-  position: [number, number];
-  label: string;
-  type: "request" | "technician";
-  category?: string;
-};
-
-const REQUEST_MARKERS: MarkerData[] = [
-  { id: "r1", position: [10.2380, -68.0050], label: "Reparación eléctrica urgente", type: "request", category: "Electricidad" },
-  { id: "r2", position: [10.2250, -68.0220], label: "Fuga de agua en cocina", type: "request", category: "Plomería" },
-  { id: "r3", position: [10.2420, -68.0180], label: "A/C sin enfriar", type: "request", category: "Climatización" },
-  { id: "r4", position: [10.2200, -68.0080], label: "Instalación de tomacorrientes", type: "request", category: "Electricidad" },
-];
-
-const TECHNICIAN_MARKERS: MarkerData[] = [
-  { id: "t1", position: [10.2350, -68.0100], label: "Carlos M. — Electricista", type: "technician" },
-  { id: "t2", position: [10.2280, -68.0200], label: "María G. — Plomera", type: "technician" },
-  { id: "t3", position: [10.2400, -68.0120], label: "José R. — Climatización", type: "technician" },
-  { id: "t4", position: [10.2180, -68.0160], label: "Ana P. — General", type: "technician" },
-];
-
-// Custom icon using SVG (MapPin style) for requests (orange/accent)
+// Custom icon using SVG for requests (orange/accent)
 function createCustomIcon(type: "request" | "technician"): L.DivIcon {
   const color = type === "request" ? "#FF6600" : "#0047AB";
   const svg = `
@@ -51,7 +31,7 @@ function createCustomIcon(type: "request" | "technician"): L.DivIcon {
 const requestIcon = createCustomIcon("request");
 const technicianIcon = createCustomIcon("technician");
 
-// Component to invalidate map size on mount (fixes grey tiles in flex containers)
+// Component to invalidate map size on mount
 function MapResizer() {
   const map = useMap();
   const resized = useRef(false);
@@ -71,13 +51,29 @@ export function MapCanvas({
   offline = false,
   className,
   variant = "requests",
+  geoParams,
 }: {
   heatmap?: boolean;
   offline?: boolean;
   className?: string;
   variant?: "requests" | "technicians" | "dark" | "light";
+  geoParams?: GeoParams;
 }) {
-  const markers = variant === "technicians" ? TECHNICIAN_MARKERS : REQUEST_MARKERS;
+  // Parámetros geo por defecto: Valencia, Carabobo, 10km
+  const defaultParams: GeoParams = geoParams ?? {
+    lat: VALENCIA_CENTER[0],
+    lng: VALENCIA_CENTER[1],
+    radius_km: 10,
+  };
+
+  // Fetch real markers from API
+  const { data: technicians } = useTechnicianMarkers(
+    variant === "technicians" || variant === "requests" || _heatmap ? defaultParams : null,
+  );
+  const { data: requests } = useRequestMarkers(
+    variant === "requests" || variant === "dark" ? defaultParams : null,
+  );
+  const { data: heatmapZones } = useHeatmapZones();
 
   if (offline) {
     return (
@@ -114,25 +110,42 @@ export function MapCanvas({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {markers.map((marker) => (
+
+        {/* Technician markers from API */}
+        {technicians?.map((tech: TechnicianMarker) => (
           <Marker
-            key={marker.id}
-            position={marker.position}
-            icon={marker.type === "request" ? requestIcon : technicianIcon}
+            key={tech.id}
+            position={[tech.latitude, tech.longitude]}
+            icon={technicianIcon}
           >
             <Popup>
-              <div className="text-sm font-medium">{marker.label}</div>
-              {marker.category && (
-                <div className="text-xs text-gray-500 mt-0.5">{marker.category}</div>
-              )}
+              <div className="text-sm font-medium">{tech.full_name}</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                ⭐ {tech.rating_average} · {Number(tech.distance_km).toFixed(1)} km
+                {tech.is_verified && " · ✓ Verificado"}
+              </div>
               <div className="text-xs mt-1">
-                <span
-                  className={cn(
-                    "inline-block px-1.5 py-0.5 rounded text-white text-[10px] font-semibold",
-                    marker.type === "request" ? "bg-[#FF6600]" : "bg-[#0047AB]"
-                  )}
-                >
-                  {marker.type === "request" ? "Solicitud" : "Técnico Activo"}
+                <span className="inline-block px-1.5 py-0.5 rounded text-white text-[10px] font-semibold bg-[#0047AB]">
+                  Técnico Activo
+                </span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Request markers from API */}
+        {requests?.map((req: RequestMarker) => (
+          <Marker
+            key={req.id}
+            position={req.position}
+            icon={requestIcon}
+          >
+            <Popup>
+              <div className="text-sm font-medium">{req.label}</div>
+              <div className="text-xs text-gray-500 mt-0.5">{req.category}</div>
+              <div className="text-xs mt-1">
+                <span className="inline-block px-1.5 py-0.5 rounded text-white text-[10px] font-semibold bg-[#FF6600]">
+                  Solicitud
                 </span>
               </div>
             </Popup>

@@ -1,11 +1,39 @@
 import { motion } from "framer-motion";
 import { Navigation, Clock } from "lucide-react";
+import { useTracking } from "@/api/hooks";
 
 /**
  * Glassmorphism floating widget showing assigned technician status.
+ * Consumes real-time tracking data from WebSocket.
  */
-export function TechnicianStatusWidget({ visible }: { visible: boolean }) {
+export function TechnicianStatusWidget({
+  visible,
+  technicianName,
+  technicianSpecialty,
+  technicianRating,
+  etaMinutes,
+}: {
+  visible: boolean;
+  technicianName?: string;
+  technicianSpecialty?: string;
+  technicianRating?: number;
+  etaMinutes?: number;
+}) {
+  const { position, lastUpdate } = useTracking();
+
   if (!visible) return null;
+
+  const name = technicianName || "Técnico asignado";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const specialty = technicianSpecialty || "Profesional";
+  const rating = technicianRating ?? 0;
+  const eta = etaMinutes ?? 0;
+  const progress = eta > 0 ? Math.min(100, Math.max(10, 100 - (eta / 15) * 100)) : 50;
 
   return (
     <motion.div
@@ -20,20 +48,23 @@ export function TechnicianStatusWidget({ visible }: { visible: boolean }) {
           {/* Technician avatar */}
           <div className="relative shrink-0">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent grid place-items-center text-white font-bold text-sm">
-              CM
+              {initials}
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[var(--success)] border-2 border-white/20" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">Carlos Mendoza</p>
-            <p className="text-xs text-white/60">Electricista · ⭐ 4.9</p>
+            <p className="text-sm font-bold text-white truncate">{name}</p>
+            <p className="text-xs text-white/60">
+              {specialty}
+              {rating > 0 && ` · ⭐ ${rating.toFixed(1)}`}
+            </p>
           </div>
 
           <div className="text-right shrink-0">
             <div className="flex items-center gap-1 text-accent">
               <Navigation className="w-3.5 h-3.5" />
-              <span className="text-sm font-bold">3 min</span>
+              <span className="text-sm font-bold">{eta > 0 ? `${eta} min` : "—"}</span>
             </div>
             <p className="text-[10px] text-white/50">en camino</p>
           </div>
@@ -45,13 +76,13 @@ export function TechnicianStatusWidget({ visible }: { visible: boolean }) {
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" /> Llegada estimada
             </span>
-            <span className="text-white/70 font-medium">75%</span>
+            <span className="text-white/70 font-medium">{Math.round(progress)}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
               initial={{ width: "0%" }}
-              animate={{ width: "75%" }}
+              animate={{ width: `${progress}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
             />
           </div>
@@ -60,7 +91,11 @@ export function TechnicianStatusWidget({ visible }: { visible: boolean }) {
         {/* Status label */}
         <div className="mt-3 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-xs text-white/70">Técnico asignado — en ruta hacia tu ubicación</span>
+          <span className="text-xs text-white/70">
+            {position
+              ? "Técnico en movimiento — rastreando en vivo"
+              : "Técnico asignado — en ruta hacia tu ubicación"}
+          </span>
         </div>
       </div>
     </motion.div>

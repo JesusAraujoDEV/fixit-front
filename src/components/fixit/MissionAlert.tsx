@@ -6,21 +6,25 @@ type MissionAlertProps = {
   open: boolean;
   onAccept: () => void;
   onReject: () => void;
+  secondsLeft?: number;
 };
 
 /**
  * Epic "New Mission" modal with countdown ring for technician view.
  */
-export function MissionAlert({ open, onAccept, onReject }: MissionAlertProps) {
-  const [countdown, setCountdown] = useState(30);
+export function MissionAlert({ open, onAccept, onReject, secondsLeft: externalSeconds }: MissionAlertProps) {
+  const [internalCountdown, setInternalCountdown] = useState(30);
+
+  // Use external seconds from hook if provided, otherwise internal
+  const countdown = externalSeconds ?? internalCountdown;
 
   useEffect(() => {
-    if (!open) {
-      setCountdown(30);
+    if (!open || externalSeconds !== undefined) {
+      setInternalCountdown(30);
       return;
     }
     const interval = setInterval(() => {
-      setCountdown((c) => {
+      setInternalCountdown((c) => {
         if (c <= 1) {
           onReject();
           return 30;
@@ -29,7 +33,7 @@ export function MissionAlert({ open, onAccept, onReject }: MissionAlertProps) {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [open, onReject]);
+  }, [open, onReject, externalSeconds]);
 
   const progress = (countdown / 30) * 100;
   const circumference = 2 * Math.PI * 54; // radius 54
