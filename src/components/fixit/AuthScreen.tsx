@@ -1,10 +1,40 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Wrench, Home, Cog, Wifi, ShieldCheck, Search, MessageCircle, Briefcase, TrendingUp, Activity, Users, Settings } from "lucide-react";
+import { Wrench, Home, Cog, Wifi, ShieldCheck, Search, MessageCircle, Briefcase, TrendingUp, Activity, Users, Settings, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLogin } from "@/api/hooks";
+import { toast } from "sonner";
+import type { User } from "@/api/types";
 
 export type UserRole = "client" | "technician" | "admin";
 
-export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
+// Credenciales de prueba por rol (seeder del backend)
+const TEST_CREDENTIALS: Record<UserRole, { email: string; password: string }> = {
+  client: { email: "maria.prebo@gmail.com", password: "Cliente1!" },
+  technician: { email: "pedro.electricista@gmail.com", password: "Tecnico1!" },
+  admin: { email: "admin@fixit.com", password: "Admin123!" },
+};
+
+export function AuthScreen({ onLogin }: { onLogin: (user: User, token: string) => void }) {
+  const loginMutation = useLogin();
+  const [loadingRole, setLoadingRole] = useState<UserRole | null>(null);
+
+  const handleRoleLogin = async (role: UserRole) => {
+    const creds = TEST_CREDENTIALS[role];
+    setLoadingRole(role);
+    try {
+      const result = await loginMutation.mutateAsync(creds);
+      onLogin(result.user, result.token);
+    } catch (error: unknown) {
+      const message =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          : "Error de conexión con el servidor";
+      toast.error("Error al iniciar sesión", { description: message || "Intenta de nuevo" });
+    } finally {
+      setLoadingRole(null);
+    }
+  };
   return (
     <AnimatePresence>
       <motion.div
@@ -50,11 +80,13 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
               transition={{ duration: 0.5, delay: 0.2 }}
               whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onLogin("client")}
+              onClick={() => handleRoleLogin("client")}
+              disabled={loadingRole !== null}
               className={cn(
                 "group relative overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-all duration-500",
                 "bg-gradient-to-br from-primary/90 to-primary/70 border-2 border-primary/30",
-                "hover:border-white/40 hover:shadow-[0_0_60px_-10px_rgba(0,71,171,0.5)]"
+                "hover:border-white/40 hover:shadow-[0_0_60px_-10px_rgba(0,71,171,0.5)]",
+                "disabled:opacity-60 disabled:cursor-not-allowed"
               )}
             >
               {/* Glow border effect on hover */}
@@ -78,8 +110,8 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
                   <Home className="w-4 h-4" />
                 </div>
                 <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
-                  Ingresar
-                  <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>
+                  {loadingRole === "client" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ingresar"}
+                  {loadingRole !== "client" && <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>}
                 </div>
               </div>
 
@@ -93,11 +125,13 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
               transition={{ duration: 0.5, delay: 0.35 }}
               whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onLogin("technician")}
+              onClick={() => handleRoleLogin("technician")}
+              disabled={loadingRole !== null}
               className={cn(
                 "group relative overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-all duration-500",
                 "bg-gradient-to-br from-[#1a1a2e] to-[#16213e] border-2 border-white/10",
-                "hover:border-accent/40 hover:shadow-[0_0_60px_-10px_rgba(255,102,0,0.4)]"
+                "hover:border-accent/40 hover:shadow-[0_0_60px_-10px_rgba(255,102,0,0.4)]",
+                "disabled:opacity-60 disabled:cursor-not-allowed"
               )}
             >
               {/* Radar animation on hover */}
@@ -124,8 +158,8 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
                   <Wifi className="w-4 h-4" />
                 </div>
                 <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent/90 group-hover:text-accent transition-colors">
-                  Ingresar
-                  <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>
+                  {loadingRole === "technician" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ingresar"}
+                  {loadingRole !== "technician" && <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>}
                 </div>
               </div>
 
@@ -139,11 +173,13 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
               transition={{ duration: 0.5, delay: 0.5 }}
               whileHover={{ scale: 1.03, y: -4 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => onLogin("admin")}
+              onClick={() => handleRoleLogin("admin")}
+              disabled={loadingRole !== null}
               className={cn(
                 "group relative overflow-hidden rounded-2xl p-7 md:p-8 text-left transition-all duration-500",
                 "bg-gradient-to-br from-[#0d1117] to-[#161b22] border-2 border-emerald-500/20",
-                "hover:border-emerald-400/50 hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.3)]"
+                "hover:border-emerald-400/50 hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.3)]",
+                "disabled:opacity-60 disabled:cursor-not-allowed"
               )}
             >
               {/* Matrix-like scan lines on hover */}
@@ -169,8 +205,8 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
                   <Settings className="w-4 h-4" />
                 </div>
                 <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-400/90 group-hover:text-emerald-400 transition-colors">
-                  Ingresar
-                  <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>
+                  {loadingRole === "admin" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ingresar"}
+                  {loadingRole !== "admin" && <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>→</motion.span>}
                 </div>
               </div>
 
@@ -188,7 +224,7 @@ export function AuthScreen({ onLogin }: { onLogin: (role: UserRole) => void }) {
             transition={{ delay: 0.9 }}
             className="text-center text-xs text-white/40 mt-8"
           >
-            FixIt Pro Network v2.0 — Prototipo sin autenticación real
+            FixIt Pro Network v2.0 — Conectado al backend real
           </motion.p>
         </div>
       </motion.div>

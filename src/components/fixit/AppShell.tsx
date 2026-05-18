@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSession } from "./SessionProvider";
 import { AuthScreen } from "./AuthScreen";
-import type { UserRole } from "./AuthScreen";
+import type { UserRole } from "@/api/types";
 
 // Re-export a simple hook that returns just the role for backward compat
 export function useUserRole(): UserRole {

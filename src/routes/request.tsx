@@ -247,7 +247,7 @@ function RequestWizard() {
               <div>
                 <p className="text-sm font-semibold mb-2">Ubicación del servicio</p>
                 <div className="rounded-md overflow-hidden border">
-                  <MapCanvas variant="dark" className="h-44" pins={[]} />
+                  <MapCanvas variant="dark" className="h-44" />
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <MapPin className="w-3.5 h-3.5 text-accent" />
