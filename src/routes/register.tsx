@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench,
@@ -69,11 +69,14 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   // Si ya está autenticado, redirigir
-  if (isAuthenticated) {
-    const dest = role === "admin" ? "/admin" : role === "technician" ? "/pro" : "/dashboard";
-    navigate({ to: dest });
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      const dest = role === "admin" ? "/admin" : role === "technician" ? "/pro" : "/dashboard";
+      navigate({ to: dest });
+    }
+  }, [isAuthenticated, role, navigate]);
+
+  if (isAuthenticated) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

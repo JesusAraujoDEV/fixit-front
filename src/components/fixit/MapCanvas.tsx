@@ -37,8 +37,14 @@ function MapResizer() {
   const resized = useRef(false);
 
   useEffect(() => {
-    if (!resized.current) {
-      setTimeout(() => map.invalidateSize(), 200);
+    if (!resized.current && map && map.getContainer()) {
+      setTimeout(() => {
+        try {
+          map.invalidateSize();
+        } catch {
+          // Map not ready yet, ignore
+        }
+      }, 300);
       resized.current = true;
     }
   }, [map]);
