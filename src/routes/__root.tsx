@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { SessionProvider } from "@/components/fixit/SessionProvider";
 
 import appCss from "../styles.css?url";
 
@@ -114,7 +115,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <SessionProvider>
+        <Outlet />
+      </SessionProvider>
       <Toaster position="top-right" richColors closeButton />
     </QueryClientProvider>
   );
