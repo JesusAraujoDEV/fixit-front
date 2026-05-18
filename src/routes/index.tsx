@@ -116,14 +116,16 @@ function LandingPage() {
 
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/login"
+                to="/register"
+                search={{ role: "client" }}
                 className="h-12 px-8 rounded-xl bg-primary text-white font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-all shadow-[0_0_30px_-5px_rgba(0,71,171,0.5)] hover:shadow-[0_0_40px_-5px_rgba(0,71,171,0.7)]"
               >
                 Solicitar un Técnico
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/login"
+                to="/register"
+                search={{ role: "technician" }}
                 className="h-12 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-semibold inline-flex items-center gap-2 hover:bg-white/10 transition-all"
               >
                 Unirse como Profesional

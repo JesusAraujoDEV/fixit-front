@@ -1,5 +1,7 @@
 // Auth
 export { useLogin, useSession, useLogout, authKeys } from "./useAuth";
+export { useRegister } from "./useRegister";
+export type { RegisterPayload, RegisterClientPayload, RegisterTechnicianPayload } from "./useRegister";
 
 // Map & Geo
 export {

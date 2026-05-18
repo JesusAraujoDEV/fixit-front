@@ -228,8 +228,11 @@ function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-white/30 mt-6">
-          FixHub Pro Network — Plataforma de servicios técnicos
+        <p className="text-center text-sm text-white/40 mt-6">
+          ¿No tienes cuenta?{" "}
+          <Link to="/register" search={{ role: undefined }} className="text-primary hover:text-primary/80 font-medium transition-colors">
+            Regístrate aquí
+          </Link>
         </p>
       </motion.div>
     </div>
