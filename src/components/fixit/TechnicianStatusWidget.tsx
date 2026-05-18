@@ -15,7 +15,7 @@ export function TechnicianStatusWidget({ visible }: { visible: boolean }) {
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-80 z-20"
     >
-      <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-elevated p-4">
+      <div className="rounded-xl border border-white/20 bg-[#1a1f2e]/95 backdrop-blur-xl shadow-elevated p-4">
         <div className="flex items-center gap-3">
           {/* Technician avatar */}
           <div className="relative shrink-0">
