@@ -1,223 +1,350 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { AppShell } from "@/components/fixit/AppShell";
-import { MapCanvas } from "@/components/fixit/MapCanvas";
-import { RadarPulse } from "@/components/fixit/RadarPulse";
-import { TechnicianStatusWidget } from "@/components/fixit/TechnicianStatusWidget";
+import { motion } from "framer-motion";
 import {
-  Activity,
-  TrendingUp,
-  Users,
-  CheckCircle2,
-  Clock,
-  ArrowUpRight,
   Wrench,
   Zap,
-  Droplet,
-  Snowflake,
-  Radio,
+  Shield,
+  MapPin,
+  Clock,
+  Star,
+  TrendingUp,
+  Wifi,
+  Brain,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/components/fixit/SessionProvider";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FixIt — Dashboard | Red de Técnicos Bajo Demanda" },
-      { name: "description", content: "Panel global de operaciones FixIt: estado de la red, mapa en vivo y métricas en tiempo real." },
+      { title: "FixHub — Servicios técnicos profesionales al instante" },
+      {
+        name: "description",
+        content:
+          "Conecta con técnicos verificados en tu zona. Electricidad, plomería, climatización y más. Respuesta en minutos.",
+      },
     ],
   }),
-  component: Dashboard,
+  component: LandingPage,
 });
 
-const stats = [
-  { label: "Solicitudes activas", value: "47", delta: "+12%", icon: Activity, tone: "primary" as const },
-  { label: "Técnicos en línea", value: "187", delta: "+5%", icon: Users, tone: "success" as const },
-  { label: "Tiempo de respuesta", value: "8 min", delta: "-1.2 min", icon: Clock, tone: "accent" as const },
-  { label: "Trabajos completados hoy", value: "312", delta: "+24%", icon: CheckCircle2, tone: "primary" as const },
-];
+function LandingPage() {
+  const { isAuthenticated, role } = useSession();
 
-const categories = [
-  { name: "Electricidad", icon: Zap, jobs: 18 },
-  { name: "Plomería", icon: Droplet, jobs: 12 },
-  { name: "Climatización", icon: Snowflake, jobs: 9 },
-  { name: "General", icon: Wrench, jobs: 8 },
-];
-
-function Dashboard() {
-  const [searching, setSearching] = useState(false);
-  const [techAssigned, setTechAssigned] = useState(false);
-
-  function simulateSearch() {
-    setSearching(true);
-    setTechAssigned(false);
-    // After 4 seconds, "find" a technician
-    setTimeout(() => {
-      setSearching(false);
-      setTechAssigned(true);
-    }, 4000);
-  }
+  // Si ya está autenticado, redirigir al dashboard correspondiente
+  const dashboardLink =
+    role === "admin" ? "/admin" : role === "technician" ? "/pro" : "/dashboard";
 
   return (
-    <AppShell>
-      <section className="px-4 md:px-6 py-6 space-y-6">
-        <header className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">
-              Centro de Operaciones
-            </p>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-              Estado de la Red en Vivo
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Simulate search button */}
-            <button
-              onClick={simulateSearch}
-              disabled={searching}
-              className={cn(
-                "inline-flex items-center gap-2 h-10 px-4 rounded-md text-sm font-semibold shadow-soft transition-all",
-                searching
-                  ? "bg-accent/20 text-accent border border-accent/30 cursor-wait"
-                  : "bg-accent text-white hover:opacity-95"
-              )}
-            >
-              <Radio className={cn("w-4 h-4", searching && "animate-pulse")} />
-              {searching ? "Buscando…" : "Simular Búsqueda"}
-            </button>
-            <Link
-              to="/request"
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow-soft hover:opacity-95"
-            >
-              Crear solicitud
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </header>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {stats.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-surface border rounded-lg p-4 shadow-soft"
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`w-9 h-9 rounded-md grid place-items-center ${
-                    s.tone === "accent" ? "bg-accent/15 text-accent"
-                    : s.tone === "success" ? "bg-[color:var(--success)]/15 text-[color:var(--success)]"
-                    : "bg-primary/10 text-primary"
-                  }`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-[color:var(--success)] inline-flex items-center gap-0.5">
-                    <TrendingUp className="w-3 h-3" />
-                    {s.delta}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold mt-3 tracking-tight">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Map with Radar + Glassmorphism widget */}
-        <div className="bg-surface border rounded-lg shadow-soft overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b">
-            <div>
-              <h2 className="font-semibold tracking-tight">Mapa Operacional</h2>
-              <p className="text-xs text-muted-foreground">
-                {searching ? "Buscando técnicos cercanos…" : techAssigned ? "Técnico asignado en ruta" : "Solicitudes y zonas de alta demanda"}
-              </p>
+    <div className="min-h-screen bg-[#0a0e17] text-white overflow-hidden">
+      {/* ─── Navbar ─────────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0e17]/80 border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-primary grid place-items-center">
+              <Wrench className="w-5 h-5 text-white" />
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <AnimatePresence>
-                {searching && (
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-accent/15 text-accent font-semibold"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                    Radar activo
-                  </motion.span>
-                )}
-              </AnimatePresence>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary" /> Disponible
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-accent" /> Urgente
-              </span>
-            </div>
-          </div>
-          <div className="relative">
-            <MapCanvas heatmap className="h-[420px] md:h-[480px] rounded-none" />
-            <RadarPulse active={searching} />
-            <TechnicianStatusWidget visible={techAssigned} />
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-surface border rounded-lg p-5 shadow-soft">
-            <h2 className="font-semibold tracking-tight mb-4">Demanda por Categoría</h2>
-            <div className="space-y-3">
-              {categories.map((c) => {
-                const Icon = c.icon;
-                const pct = Math.min(100, c.jobs * 5);
-                return (
-                  <div key={c.name} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-md bg-primary/10 text-primary grid place-items-center">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium">{c.name}</span>
-                        <span className="text-muted-foreground">{c.jobs} activos</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <motion.div
-                          className="h-full bg-primary"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 0.8, delay: 0.3 }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="text-lg font-bold tracking-tight">FixHub</span>
           </div>
 
-          <div className="bg-[var(--slate-industrial)] text-white rounded-lg p-5 shadow-soft relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-accent/20 blur-3xl" />
-            <div className="relative">
-              <p className="text-xs uppercase tracking-widest text-white/60 font-semibold">
-                Acceso Rápido
-              </p>
-              <h2 className="text-xl font-bold mt-1">¿Eres técnico?</h2>
-              <p className="text-sm text-white/70 mt-1">
-                Activa tu disponibilidad y empieza a recibir trabajos en tu zona.
-              </p>
+          <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+            <a href="#como-funciona" className="hover:text-white transition-colors">
+              Cómo funciona
+            </a>
+            <a href="#beneficios" className="hover:text-white transition-colors">
+              Beneficios
+            </a>
+            <a href="#soporte" className="hover:text-white transition-colors">
+              Soporte
+            </a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {isAuthenticated ? (
               <Link
-                to="/pro"
-                className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-md bg-accent text-accent-foreground font-semibold text-sm hover:opacity-95"
+                to={dashboardLink}
+                className="h-10 px-5 rounded-lg bg-primary text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
               >
-                Ir a Modo Técnico <ArrowUpRight className="w-4 h-4" />
+                Ir al Dashboard
+                <ArrowRight className="w-4 h-4" />
               </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="h-10 px-5 rounded-lg bg-primary text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
+              >
+                Iniciar Sesión
+              </Link>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* ─── Hero Section ───────────────────────────────────────────────── */}
+      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8">
+        {/* Background effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
+          <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-accent/5 blur-[100px]" />
+        </div>
+
+        <div className="relative max-w-5xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/70 mb-6">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              187 técnicos en línea ahora
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
+              Servicios técnicos profesionales
+              <br />
+              <span className="bg-gradient-to-r from-primary via-blue-400 to-primary bg-clip-text text-transparent">
+                en tu zona, al instante
+              </span>
+            </h1>
+
+            <p className="mt-6 text-lg sm:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed">
+              Conecta con electricistas, plomeros y técnicos verificados.
+              Diagnóstico con IA, seguimiento en tiempo real y respuesta en minutos.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/login"
+                className="h-12 px-8 rounded-xl bg-primary text-white font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-all shadow-[0_0_30px_-5px_rgba(0,71,171,0.5)] hover:shadow-[0_0_40px_-5px_rgba(0,71,171,0.7)]"
+              >
+                Solicitar un Técnico
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/login"
+                className="h-12 px-8 rounded-xl bg-white/5 border border-white/10 text-white font-semibold inline-flex items-center gap-2 hover:bg-white/10 transition-all"
+              >
+                Unirse como Profesional
+                <Wrench className="w-4 h-4" />
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Trust indicators */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="mt-16 flex flex-wrap items-center justify-center gap-8 text-sm text-white/40"
+          >
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span>Técnicos verificados</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>Respuesta en ~8 min</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4" />
+              <span>4.8/5 satisfacción</span>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Cómo Funciona ──────────────────────────────────────────────── */}
+      <section id="como-funciona" className="py-24 px-4 sm:px-6 lg:px-8 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-3">
+              Proceso simple
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Cómo funciona FixHub
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                step: "01",
+                title: "Describe tu problema",
+                desc: "Toma una foto, nuestra IA diagnostica y categoriza automáticamente.",
+                icon: Brain,
+              },
+              {
+                step: "02",
+                title: "Conectamos al técnico ideal",
+                desc: "Nuestro radar encuentra al profesional más cercano y mejor calificado.",
+                icon: MapPin,
+              },
+              {
+                step: "03",
+                title: "Seguimiento en vivo",
+                desc: "Ve al técnico en camino en tiempo real. Paga seguro al finalizar.",
+                icon: Wifi,
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.5 }}
+                className="relative p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-colors"
+              >
+                <div className="text-5xl font-bold text-white/5 absolute top-4 right-4">
+                  {item.step}
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-primary/10 grid place-items-center mb-4">
+                  <item.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-sm text-white/50 leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Beneficios Dual (Bento Grid) ───────────────────────────────── */}
+      <section id="beneficios" className="py-24 px-4 sm:px-6 lg:px-8 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs uppercase tracking-widest text-accent font-semibold mb-3">
+              Para todos
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Beneficios que transforman
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Cliente */}
+            <div className="space-y-4">
+              <div className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 inline-flex items-center gap-2 text-sm text-primary font-medium">
+                <MapPin className="w-4 h-4" />
+                Para Clientes
+              </div>
+              <div className="grid gap-3">
+                {[
+                  {
+                    icon: Clock,
+                    title: "Respuesta inmediata",
+                    desc: "Técnico asignado en menos de 8 minutos promedio.",
+                  },
+                  {
+                    icon: Shield,
+                    title: "Profesionales verificados",
+                    desc: "Documentos validados, calificaciones reales y seguimiento GPS.",
+                  },
+                  {
+                    icon: Brain,
+                    title: "Diagnóstico con IA",
+                    desc: "Toma una foto y obtén un diagnóstico preliminar al instante.",
+                  },
+                ].map((b) => (
+                  <div
+                    key={b.title}
+                    className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 grid place-items-center shrink-0">
+                      <b.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm">{b.title}</h4>
+                      <p className="text-xs text-white/50 mt-0.5">{b.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Técnico */}
+            <div className="space-y-4">
+              <div className="px-4 py-2 rounded-full bg-accent/10 border border-accent/20 inline-flex items-center gap-2 text-sm text-accent font-medium">
+                <Wrench className="w-4 h-4" />
+                Para Técnicos
+              </div>
+              <div className="grid gap-3">
+                {[
+                  {
+                    icon: TrendingUp,
+                    title: "Maximiza tus ingresos",
+                    desc: "Recibe trabajos constantes sin buscar clientes por tu cuenta.",
+                  },
+                  {
+                    icon: MapPin,
+                    title: "Rutas optimizadas",
+                    desc: "Solo recibes ofertas dentro de tu radio. Cero viajes innecesarios.",
+                  },
+                  {
+                    icon: Zap,
+                    title: "Control total",
+                    desc: "Activa o desactiva tu disponibilidad con un solo toque.",
+                  },
+                ].map((b) => (
+                  <div
+                    key={b.title}
+                    className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-accent/10 grid place-items-center shrink-0">
+                      <b.icon className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm">{b.title}</h4>
+                      <p className="text-xs text-white/50 mt-0.5">{b.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
-    </AppShell>
+
+      {/* ─── CTA Final ──────────────────────────────────────────────────── */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 border-t border-white/5">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+            ¿Listo para empezar?
+          </h2>
+          <p className="text-white/50 mb-8">
+            Únete a la red de servicios técnicos más rápida de la ciudad.
+          </p>
+          <Link
+            to="/login"
+            className="h-12 px-8 rounded-xl bg-primary text-white font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-all shadow-[0_0_30px_-5px_rgba(0,71,171,0.5)]"
+          >
+            Comenzar ahora
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── Footer ─────────────────────────────────────────────────────── */}
+      <footer id="soporte" className="border-t border-white/5 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
+          <div className="flex items-center gap-2">
+            <Wrench className="w-4 h-4" />
+            <span>FixHub © 2025 — Todos los derechos reservados</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href="#" className="hover:text-white/70 transition-colors">
+              Términos
+            </a>
+            <a href="#" className="hover:text-white/70 transition-colors">
+              Privacidad
+            </a>
+            <a href="#" className="hover:text-white/70 transition-colors">
+              Soporte
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

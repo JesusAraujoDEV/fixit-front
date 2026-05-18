@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RequestRouteImport } from './routes/request'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProRouteImport } from './routes/pro'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as JobsRouteImport } from './routes/jobs'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -31,9 +33,19 @@ const ProRoute = ProRouteImport.update({
   path: '/pro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsRoute = JobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -50,7 +62,9 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/pro': typeof ProRoute
   '/profile': typeof ProfileRoute
   '/request': typeof RequestRoute
@@ -58,7 +72,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/pro': typeof ProRoute
   '/profile': typeof ProfileRoute
   '/request': typeof RequestRoute
@@ -67,23 +83,52 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/jobs': typeof JobsRoute
+  '/login': typeof LoginRoute
   '/pro': typeof ProRoute
   '/profile': typeof ProfileRoute
   '/request': typeof RequestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/jobs' | '/pro' | '/profile' | '/request'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/jobs'
+    | '/login'
+    | '/pro'
+    | '/profile'
+    | '/request'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/jobs' | '/pro' | '/profile' | '/request'
-  id: '__root__' | '/' | '/admin' | '/jobs' | '/pro' | '/profile' | '/request'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/jobs'
+    | '/login'
+    | '/pro'
+    | '/profile'
+    | '/request'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/jobs'
+    | '/login'
+    | '/pro'
+    | '/profile'
+    | '/request'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
   JobsRoute: typeof JobsRoute
+  LoginRoute: typeof LoginRoute
   ProRoute: typeof ProRoute
   ProfileRoute: typeof ProfileRoute
   RequestRoute: typeof RequestRoute
@@ -112,11 +157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs': {
       id: '/jobs'
       path: '/jobs'
       fullPath: '/jobs'
       preLoaderRoute: typeof JobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -139,7 +198,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
   JobsRoute: JobsRoute,
+  LoginRoute: LoginRoute,
   ProRoute: ProRoute,
   ProfileRoute: ProfileRoute,
   RequestRoute: RequestRoute,

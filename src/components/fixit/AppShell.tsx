@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Wrench,
   Bell,
@@ -19,11 +19,10 @@ import {
   FileWarning,
   Settings,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSession } from "./SessionProvider";
-import { AuthScreen } from "./AuthScreen";
 import type { UserRole } from "@/api/types";
 
 // Re-export a simple hook that returns just the role for backward compat
@@ -35,7 +34,7 @@ export function useUserRole(): UserRole {
 type NavItem = { to: string; label: string; icon: typeof Home };
 
 const CLIENT_NAV: NavItem[] = [
-  { to: "/", label: "Inicio", icon: Home },
+  { to: "/dashboard", label: "Inicio", icon: Home },
   { to: "/request", label: "Nueva Solicitud", icon: PlusCircle },
   { to: "/jobs", label: "Mis Solicitudes", icon: ClipboardList },
   { to: "/profile", label: "Mi Perfil", icon: User },
@@ -50,7 +49,7 @@ const TECH_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: "/admin", label: "Command Center", icon: Activity },
-  { to: "/", label: "Red Global", icon: Users },
+  { to: "/dashboard", label: "Red Global", icon: Users },
   { to: "/jobs", label: "Transacciones", icon: FileWarning },
   { to: "/profile", label: "Configuración", icon: Settings },
 ];
@@ -89,17 +88,30 @@ function getRoleIcon(role: UserRole) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { role, isAuthenticated, login, logout } = useSession();
+  const { role, isAuthenticated, user, logout } = useSession();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
   const nav = getNavForRole(role);
   const isAdmin = role === "admin";
   const RoleIcon = getRoleIcon(role);
 
-  // Show auth screen if not authenticated
+  // Redirigir a login si no está autenticado
+  useEffect(() => {
+    if (!isAuthenticated && typeof window !== "undefined") {
+      navigate({ to: "/login" });
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Mientras redirige, no renderizar nada
   if (!isAuthenticated) {
-    return <AuthScreen onLogin={login} />;
+    return null;
   }
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/" });
+  };
 
   return (
     <AnimatePresence mode="wait">
@@ -193,7 +205,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Logout */}
           <div className="px-2 pb-4">
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className={cn(
                 "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                 "text-white/60 hover:bg-red-500/15 hover:text-red-300"
@@ -244,7 +256,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className={cn("absolute top-2 right-2 w-2 h-2 rounded-full", isAdmin ? "bg-emerald-400" : "bg-accent")} />
             </button>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className={cn(
                 "md:hidden w-10 h-10 grid place-items-center rounded-md transition-colors",
                 isAdmin ? "text-white/50 hover:bg-red-500/10 hover:text-red-400" : "text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
@@ -259,7 +271,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 : role === "technician" ? "bg-gradient-to-br from-accent to-orange-700"
                 : "bg-gradient-to-br from-primary to-blue-700"
             )}>
-              {role === "admin" ? "AD" : role === "technician" ? "JM" : "CL"}
+              {user?.full_name
+                ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+                : role === "admin" ? "AD" : role === "technician" ? "TC" : "CL"}
             </div>
           </div>
         </header>

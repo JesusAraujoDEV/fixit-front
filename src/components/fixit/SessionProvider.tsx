@@ -10,7 +10,7 @@ import { useSession as useSessionQuery, useLogout as useLogoutHook } from "@/api
 import { connectSocket, disconnectSocket, TOKEN_KEY } from "@/api/client";
 import type { User, UserRole } from "@/api/types";
 
-// Re-export para compatibilidad con AuthScreen
+// Re-export para uso en componentes
 export type { UserRole } from "@/api/types";
 
 type SessionState = {
@@ -55,6 +55,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   // Escuchar evento de sesión expirada (disparado por el interceptor HTTP)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const handleExpired = () => {
       setUser(null);
       setIsAuthenticated(false);
@@ -84,10 +86,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     disconnectSocket();
     logoutFn();
     setUser(null);
-    toast.success("Sesión cerrada exitosamente", {
-      description: "Has salido de tu cuenta FixIt.",
+    setIsAuthenticated(false);
+    toast.success("Sesión cerrada", {
+      description: "Has salido de tu cuenta FixHub.",
     });
-    setTimeout(() => setIsAuthenticated(false), 400);
   }, [logoutFn]);
 
   const role: UserRole = user?.role ?? "client";
