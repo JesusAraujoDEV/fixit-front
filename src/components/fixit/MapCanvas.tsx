@@ -74,10 +74,10 @@ export function MapCanvas({
 
   // Fetch real markers from API
   const { data: technicians } = useTechnicianMarkers(
-    variant === "technicians" || variant === "requests" || _heatmap ? defaultParams : null,
+    variant === "requests" || variant === "dark" ? defaultParams : null,
   );
   const { data: requests } = useRequestMarkers(
-    variant === "requests" || variant === "dark" ? defaultParams : null,
+    variant === "requests" || variant === "technicians" || variant === "dark" ? defaultParams : null,
   );
 
   if (offline) {
