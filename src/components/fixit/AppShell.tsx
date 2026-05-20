@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSession } from "./SessionProvider";
 import { toast } from "sonner";
+import { useNotifications } from "@/api/hooks";
 import type { UserRole } from "@/api/types";
 
 // Re-export a simple hook that returns just the role for backward compat
@@ -95,6 +96,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
 
   const nav = getNavForRole(role);
   const isAdmin = role === "admin";
@@ -282,7 +286,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-expanded={notifOpen}
               >
                 <Bell className="w-5 h-5" />
-                <span className={cn("absolute top-2 right-2 w-2 h-2 rounded-full", isAdmin ? "bg-emerald-400" : "bg-accent")} />
+                {unreadCount > 0 && (
+                  <span className={cn(
+                    "absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white",
+                    isAdmin ? "bg-emerald-400" : "bg-accent"
+                  )}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+                {unreadCount === 0 && (
+                  <span className={cn("absolute top-2 right-2 w-2 h-2 rounded-full", isAdmin ? "bg-emerald-400/40" : "bg-muted-foreground/30")} />
+                )}
               </button>
 
               {/* Notification Dropdown */}
@@ -294,31 +308,70 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
                     className={cn(
-                      "absolute right-0 top-12 w-80 rounded-lg border shadow-elevated z-50 overflow-hidden",
+                      "absolute right-0 top-12 w-80 max-h-96 rounded-lg border shadow-elevated z-50 overflow-hidden flex flex-col",
                       isAdmin ? "bg-[#161b22] border-emerald-500/20" : "bg-surface border-border"
                     )}
                   >
                     <div className={cn(
-                      "px-4 py-3 border-b flex items-center justify-between",
+                      "px-4 py-3 border-b flex items-center justify-between shrink-0",
                       isAdmin ? "border-emerald-500/10" : "border-border"
                     )}>
                       <h3 className={cn("font-semibold text-sm", isAdmin ? "text-white" : "text-foreground")}>
                         Notificaciones
                       </h3>
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
-                        isAdmin ? "bg-emerald-500/15 text-emerald-400" : "bg-primary/10 text-primary"
-                      )}>
-                        Próximamente
-                      </span>
+                      {unreadCount > 0 && (
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded",
+                          isAdmin ? "bg-emerald-500/15 text-emerald-400" : "bg-accent/15 text-accent"
+                        )}>
+                          {unreadCount} nueva{unreadCount > 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
-                    <div className="px-4 py-8 flex flex-col items-center gap-2">
-                      <Inbox className={cn("w-10 h-10", isAdmin ? "text-white/20" : "text-muted-foreground/40")} />
-                      <p className={cn("text-sm font-medium", isAdmin ? "text-white/60" : "text-muted-foreground")}>
-                        No tienes notificaciones nuevas
-                      </p>
-                      <p className={cn("text-xs text-center", isAdmin ? "text-white/30" : "text-muted-foreground/70")}>
-                        Las alertas de servicio y actualizaciones aparecerán aquí.
-                      </p>
+                    <div className="overflow-y-auto flex-1">
+                      {notifications && notifications.length > 0 ? (
+                        <div className="divide-y divide-border/50">
+                          {notifications.slice(0, 10).map((notif) => (
+                            <div
+                              key={notif.id}
+                              className={cn(
+                                "px-4 py-3 hover:bg-muted/50 transition-colors",
+                                !notif.read && (isAdmin ? "bg-emerald-500/5" : "bg-primary/5")
+                              )}
+                            >
+                              <div className="flex items-start gap-2">
+                                <span className={cn(
+                                  "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                  notif.type === "success" ? "bg-[var(--success)]" :
+                                  notif.type === "error" ? "bg-red-500" :
+                                  notif.type === "warning" ? "bg-accent" :
+                                  "bg-primary"
+                                )} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn("text-xs font-semibold", isAdmin ? "text-white" : "text-foreground")}>
+                                    {notif.title}
+                                  </p>
+                                  <p className={cn("text-xs mt-0.5 line-clamp-2", isAdmin ? "text-white/50" : "text-muted-foreground")}>
+                                    {notif.message}
+                                  </p>
+                                  <p className={cn("text-[10px] mt-1", isAdmin ? "text-white/30" : "text-muted-foreground/70")}>
+                                    {new Date(notif.created_at).toLocaleString("es-VE", { dateStyle: "short", timeStyle: "short" })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-8 flex flex-col items-center gap-2">
+                          <Inbox className={cn("w-10 h-10", isAdmin ? "text-white/20" : "text-muted-foreground/40")} />
+                          <p className={cn("text-sm font-medium", isAdmin ? "text-white/60" : "text-muted-foreground")}>
+                            No tienes notificaciones
+                          </p>
+                          <p className={cn("text-xs text-center", isAdmin ? "text-white/30" : "text-muted-foreground/70")}>
+                            Las alertas de servicio aparecerán aquí.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}

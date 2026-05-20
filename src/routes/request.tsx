@@ -15,7 +15,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useCreateRequest, useUploadImage, useCompletedJobs } from "@/api/hooks";
+import { useCreateRequest, useUploadImage, useCompletedJobs, useTechnicianProfile } from "@/api/hooks";
 import { useSession } from "@/components/fixit/SessionProvider";
 import type { RequestCategory } from "@/api/types";
 
@@ -49,15 +49,19 @@ function RequestPage() {
 function TechProProfile() {
   const { user } = useSession();
   const { data: completedJobs, isLoading } = useCompletedJobs();
+  const { data: techProfile } = useTechnicianProfile();
 
-  const initials = user?.full_name
-    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+  const displayName = techProfile?.full_name || user?.full_name;
+  const initials = displayName
+    ? displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
 
   const jobCount = completedJobs?.length ?? 0;
-  const avgRating = jobCount > 0
-    ? (completedJobs!.reduce((s, j) => s + j.rating, 0) / jobCount).toFixed(2)
-    : "—";
+  const avgRating = techProfile?.rating_average
+    ? techProfile.rating_average.toFixed(2)
+    : jobCount > 0
+      ? (completedJobs!.reduce((s, j) => s + j.rating, 0) / jobCount).toFixed(2)
+      : "—";
 
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-3xl">
@@ -72,7 +76,7 @@ function TechProProfile() {
           {initials}
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold tracking-tight">{user?.full_name ?? "—"}</h2>
+          <h2 className="text-xl font-bold tracking-tight">{displayName ?? "—"}</h2>
           <p className="text-sm text-muted-foreground">{user?.email ?? "—"}</p>
           <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
             <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> {avgRating} ({jobCount} reseñas)</span>

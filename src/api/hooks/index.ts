@@ -26,8 +26,20 @@ export {
   useCompletedJobs,
   useToggleAvailability,
   useAvailabilityStatus,
+  useJobDetail,
+  useAcceptJob,
   jobKeys,
 } from "./useJobs";
+
+// Technician Profile
+export {
+  useTechnicianProfile,
+  useUpdateTechnicianProfile,
+  techProfileKeys,
+} from "./useTechnicianProfile";
+
+// Notifications
+export { useNotifications, notificationKeys } from "./useNotifications";
 
 // Admin
 export {

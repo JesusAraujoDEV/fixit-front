@@ -1,6 +1,7 @@
-import { Clock, MapPin, ChevronRight, Zap, Droplet, Snowflake, Hammer, Wrench } from "lucide-react";
+import { Clock, MapPin, ChevronRight, Zap, Droplet, Snowflake, Hammer, Wrench, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAcceptJob } from "@/api/hooks";
 import type { LucideIcon } from "lucide-react";
 
 export type Job = {
@@ -26,11 +27,6 @@ const CATEGORY_MAP: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  Electricidad: Zap,
-  Plomería: Droplet,
-  Climatización: Snowflake,
-  General: Hammer,
-  Cerrajería: Wrench,
   electrical: Zap,
   plumbing: Droplet,
   hvac: Snowflake,
@@ -42,10 +38,37 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   cleaning: Hammer,
 };
 
-export function JobCard({ job, onAccept }: { job: Job; onAccept?: (id: string) => void }) {
+export function JobCard({ job, onDetails }: { job: Job; onDetails?: (id: string) => void }) {
   const Icon = CATEGORY_ICONS[job.category] ?? Hammer;
   const displayCategory = CATEGORY_MAP[job.category] ?? job.category;
   const expiringSoon = job.expiresInMin <= 3;
+
+  const acceptJob = useAcceptJob();
+
+  const handleAccept = async () => {
+    try {
+      const result = await acceptJob.mutateAsync(job.id);
+      toast.success("¡Trabajo aceptado!", {
+        description: `${result.title} — Dirígete al punto de servicio.`,
+      });
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      toast.error("No se pudo aceptar el trabajo", {
+        description: `${status ? `[${status}] ` : ""}${message || "Intenta de nuevo."}`,
+      });
+    }
+  };
+
+  const handleDetails = () => {
+    if (onDetails) {
+      onDetails(job.id);
+    } else {
+      toast.info(job.title, {
+        description: `${displayCategory} · ${job.distanceKm.toFixed(1)} km · Pago: ${job.payout}`,
+      });
+    }
+  };
 
   return (
     <article className="bg-surface rounded-lg border shadow-soft p-4 hover:shadow-elevated transition-shadow">
@@ -94,16 +117,17 @@ export function JobCard({ job, onAccept }: { job: Job; onAccept?: (id: string) =
 
       <div className="flex gap-2 mt-4">
         <button
-          onClick={() => toast.info(`${job.title}`, { description: `${displayCategory} · ${job.distanceKm.toFixed(1)} km · Pago: ${job.payout}. Vista de detalles en construcción.` })}
+          onClick={handleDetails}
           className="flex-1 h-10 rounded-md border bg-surface text-sm font-medium hover:bg-muted transition-colors inline-flex items-center justify-center gap-1"
         >
           Detalles <ChevronRight className="w-4 h-4" />
         </button>
         <button
-          onClick={() => onAccept ? onAccept(job.id) : toast.info("Aceptar trabajo", { description: "Función disponible desde las alertas de misión." })}
-          className="flex-1 h-10 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow-soft hover:opacity-95 transition-opacity"
+          onClick={handleAccept}
+          disabled={acceptJob.isPending}
+          className="flex-1 h-10 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow-soft hover:opacity-95 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1"
         >
-          Aceptar
+          {acceptJob.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aceptar"}
         </button>
       </div>
     </article>

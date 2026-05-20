@@ -5,6 +5,8 @@ import type {
   CompletedJob,
   AvailabilityPayload,
   AvailabilityResponse,
+  JobDetail,
+  AcceptJobResponse,
 } from "../types";
 
 // ─── Keys ───────────────────────────────────────────────────────────────────
@@ -13,6 +15,7 @@ export const jobKeys = {
     ["jobs", "available", params] as const,
   completed: (params?: { date_from?: string; date_to?: string }) =>
     ["jobs", "completed", params] as const,
+  detail: (id: string) => ["jobs", "detail", id] as const,
   availability: ["technician", "availability"] as const,
 };
 
@@ -98,5 +101,44 @@ export function useAvailabilityStatus() {
       return data;
     },
     staleTime: 30_000,
+  });
+}
+
+// ─── useJobDetail ───────────────────────────────────────────────────────────
+/**
+ * Detalle completo de un job (imágenes, cliente, descripción, etc.)
+ * GET /jobs/:jobId
+ */
+export function useJobDetail(jobId: string | null) {
+  return useQuery<JobDetail>({
+    queryKey: jobKeys.detail(jobId ?? ""),
+    queryFn: async () => {
+      const { data } = await httpClient.get<JobDetail>(`/jobs/${jobId}`);
+      return data;
+    },
+    enabled: !!jobId,
+    staleTime: 30_000,
+  });
+}
+
+// ─── useAcceptJob ───────────────────────────────────────────────────────────
+/**
+ * Mutation para aceptar un job directamente.
+ * POST /jobs/:jobId/accept
+ */
+export function useAcceptJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (jobId: string): Promise<AcceptJobResponse> => {
+      const { data } = await httpClient.post<AcceptJobResponse>(
+        `/jobs/${jobId}/accept`,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidar lista de jobs disponibles
+      queryClient.invalidateQueries({ queryKey: ["jobs", "available"] });
+    },
   });
 }

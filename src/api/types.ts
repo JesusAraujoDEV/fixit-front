@@ -137,6 +137,68 @@ export interface AvailabilityResponse {
   updated_at: string;
 }
 
+// ─── Job Detail & Accept ────────────────────────────────────────────────────
+
+export interface JobDetail {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  images: string[];
+  status: string;
+  price_estimated: number | null;
+  latitude: number;
+  longitude: number;
+  client: {
+    name: string;
+    phone: string;
+    avatar_url: string | null;
+  };
+  technician: { name: string } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcceptJobResponse {
+  mission_id: string;
+  job_id: string;
+  status: "accepted";
+  title: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+}
+
+// ─── Technician Profile ─────────────────────────────────────────────────────
+
+export interface TechnicianProfile {
+  id: string;
+  bio: string;
+  full_name: string;
+  phone: string;
+  specialty: string;
+  is_verified: boolean;
+  rating_average: number;
+  updated_at: string;
+}
+
+export interface UpdateTechnicianProfilePayload {
+  bio?: string;
+  full_name?: string;
+  phone?: string;
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  type: "info" | "success" | "warning" | "error";
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 // ─── Admin ──────────────────────────────────────────────────────────────────
 
 export interface KpiItem {

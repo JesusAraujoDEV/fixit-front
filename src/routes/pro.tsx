@@ -92,10 +92,6 @@ function ProView() {
     toast.error("Misión rechazada", { description: "Se asignará a otro técnico." });
   }, [rejectMission]);
 
-  const handleJobAccept = useCallback((jobId: string) => {
-    toast.info("Aceptando trabajo…", { description: `Job ${jobId} — Función de aceptación directa en construcción. Usa las alertas de misión.` });
-  }, []);
-
   // Map jobs from API to JobCard format
   const jobs: Job[] = (availableJobs ?? []).map((j) => ({
     id: j.id,
@@ -272,7 +268,7 @@ function ProView() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.1 }}
                       >
-                        <JobCard job={j} onAccept={handleJobAccept} />
+                        <JobCard job={j} />
                       </motion.div>
                     ))
                   : online && (
