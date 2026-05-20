@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
+import { useSession } from "@/components/fixit/SessionProvider";
+import { useMyRequests, useCompletedJobs } from "@/api/hooks";
 import {
   Star, Award, Shield, CheckCircle2, User, Mail, Phone, MapPin,
   DollarSign, TrendingUp, Calendar, Clock, Bell, Lock, Palette, Globe,
@@ -18,8 +20,41 @@ export const Route = createFileRoute("/profile")({
   component: ProfilePage,
 });
 
+// ─── Helpers ───
+function getInitials(fullName: string | undefined): string {
+  if (!fullName) return "??";
+  return fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatMemberSince(createdAt: string | undefined, role: string): string {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  const month = date.toLocaleDateString("es-VE", { month: "long" });
+  const year = date.getFullYear();
+  const capitalMonth = month.charAt(0).toUpperCase() + month.slice(1);
+  const roleLabel = role === "technician" ? "Técnico" : role === "admin" ? "Admin" : "Cliente";
+  return `${roleLabel} desde ${capitalMonth} ${year}`;
+}
+
+// ─── Skeleton for stats ───
+function StatSkeleton() {
+  return <div className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-20" />;
+}
+
 // ─── Client Profile ───
 function ClientProfileView() {
+  const { user } = useSession();
+  const { data: activeRequests, isLoading: loadingActive } = useMyRequests("active");
+  const { data: completedRequests, isLoading: loadingCompleted } = useMyRequests("completed");
+
+  const initials = getInitials(user?.full_name);
+  const memberSince = formatMemberSince(user?.created_at, "client");
+
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-3xl">
       <header>
@@ -30,17 +65,14 @@ function ClientProfileView() {
       {/* Profile card */}
       <div className="bg-surface border rounded-lg shadow-soft p-6 flex items-center gap-5">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-2xl font-bold">
-          CL
+          {initials}
         </div>
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Carlos López</h2>
-          <p className="text-sm text-muted-foreground">Cliente desde Enero 2025</p>
+          <h2 className="text-xl font-bold tracking-tight">{user?.full_name ?? "—"}</h2>
+          <p className="text-sm text-muted-foreground">{memberSince}</p>
           <div className="flex items-center gap-3 mt-2 text-xs">
             <span className="inline-flex items-center gap-1 text-[color:var(--success)]">
               <Shield className="w-3.5 h-3.5" /> Verificado
-            </span>
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" /> Valencia, Carabobo
             </span>
           </div>
         </div>
@@ -48,21 +80,33 @@ function ClientProfileView() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <ClipboardIcon className="w-4 h-4 text-primary" />
-          <p className="text-lg font-bold mt-2">12</p>
-          <p className="text-xs text-muted-foreground">Solicitudes</p>
-        </div>
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
-          <p className="text-lg font-bold mt-2">10</p>
-          <p className="text-xs text-muted-foreground">Completadas</p>
-        </div>
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <Star className="w-4 h-4 text-accent" />
-          <p className="text-lg font-bold mt-2">4.8</p>
-          <p className="text-xs text-muted-foreground">Rating dado</p>
-        </div>
+        {loadingActive || loadingCompleted ? (
+          <>
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </>
+        ) : (
+          <>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <Calendar className="w-4 h-4 text-primary" />
+              <p className="text-lg font-bold mt-2">
+                {(activeRequests?.length ?? 0) + (completedRequests?.length ?? 0)}
+              </p>
+              <p className="text-xs text-muted-foreground">Solicitudes</p>
+            </div>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
+              <p className="text-lg font-bold mt-2">{completedRequests?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Completadas</p>
+            </div>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <Star className="w-4 h-4 text-accent" />
+              <p className="text-lg font-bold mt-2 text-muted-foreground text-sm">—</p>
+              <p className="text-xs text-muted-foreground">Rating</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Info */}
@@ -71,15 +115,13 @@ function ClientProfileView() {
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-sm">
             <Mail className="w-4 h-4 text-muted-foreground" />
-            <span>carlos.lopez@email.com</span>
+            <span>{user?.email ?? "—"}</span>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <Phone className="w-4 h-4 text-muted-foreground" />
-            <span>+58 412-555-1234</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span>Av. Bolívar Norte, Valencia, Carabobo</span>
+            <span className={!user?.phone ? "text-muted-foreground italic" : ""}>
+              {user?.phone || "No especificado"}
+            </span>
           </div>
         </div>
       </div>
@@ -87,22 +129,21 @@ function ClientProfileView() {
   );
 }
 
-function ClipboardIcon({ className }: { className?: string }) {
-  return <Calendar className={className} />;
-}
-
 // ─── Technician Profile (Ganancias) ───
 function TechProfileView() {
-  const weeklyEarnings = [
-    { day: "Lun", amount: 85 },
-    { day: "Mar", amount: 120 },
-    { day: "Mié", amount: 65 },
-    { day: "Jue", amount: 145 },
-    { day: "Vie", amount: 95 },
-    { day: "Sáb", amount: 180 },
-    { day: "Dom", amount: 45 },
-  ];
-  const maxEarning = Math.max(...weeklyEarnings.map(d => d.amount));
+  const { user } = useSession();
+  const { data: completedJobs, isLoading } = useCompletedJobs();
+
+  const initials = getInitials(user?.full_name);
+  const memberSince = formatMemberSince(user?.created_at, "technician");
+
+  // Calcular ganancias reales de los trabajos completados
+  const totalEarnings = (completedJobs ?? []).reduce((sum, j) => {
+    const num = parseFloat(j.earnings.replace(/[^0-9.]/g, ""));
+    return sum + (isNaN(num) ? 0 : num);
+  }, 0);
+
+  const jobCount = completedJobs?.length ?? 0;
 
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-4xl">
@@ -113,64 +154,93 @@ function TechProfileView() {
 
       {/* Earnings summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <DollarSign className="w-3.5 h-3.5" /> Hoy
-          </div>
-          <p className="text-2xl font-bold text-[var(--success)]">$285</p>
-        </div>
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <Calendar className="w-3.5 h-3.5" /> Esta semana
-          </div>
-          <p className="text-2xl font-bold">$735</p>
-        </div>
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <TrendingUp className="w-3.5 h-3.5" /> Este mes
-          </div>
-          <p className="text-2xl font-bold">$2,840</p>
-        </div>
-        <div className="bg-surface border rounded-lg p-4 shadow-soft">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <Clock className="w-3.5 h-3.5" /> Pendiente
-          </div>
-          <p className="text-2xl font-bold text-accent">$145</p>
-        </div>
+        {isLoading ? (
+          <>
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+            <StatSkeleton />
+          </>
+        ) : (
+          <>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <DollarSign className="w-3.5 h-3.5" /> Total ganado
+              </div>
+              <p className="text-2xl font-bold text-[var(--success)]">${totalEarnings.toFixed(0)}</p>
+            </div>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Trabajos
+              </div>
+              <p className="text-2xl font-bold">{jobCount}</p>
+            </div>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <TrendingUp className="w-3.5 h-3.5" /> Promedio
+              </div>
+              <p className="text-2xl font-bold">
+                {jobCount > 0 ? `$${(totalEarnings / jobCount).toFixed(0)}` : "—"}
+              </p>
+            </div>
+            <div className="bg-surface border rounded-lg p-4 shadow-soft">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <Star className="w-3.5 h-3.5" /> Rating
+              </div>
+              <p className="text-2xl font-bold">
+                {jobCount > 0
+                  ? (completedJobs!.reduce((s, j) => s + j.rating, 0) / jobCount).toFixed(1)
+                  : "—"}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Weekly chart */}
-      <div className="bg-surface border rounded-lg p-5 shadow-soft">
-        <h3 className="font-semibold mb-4">Ganancias de la Semana</h3>
-        <div className="flex items-end gap-3 h-40">
-          {weeklyEarnings.map((d) => {
-            const height = (d.amount / maxEarning) * 100;
-            return (
-              <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-foreground">${d.amount}</span>
-                <div
-                  className="w-full rounded-t-md bg-primary/80 transition-all"
-                  style={{ height: `${height}%` }}
-                />
-                <span className="text-[10px] text-muted-foreground font-medium">{d.day}</span>
+      {/* Recent earnings chart from real data */}
+      {!isLoading && jobCount > 0 && (
+        <div className="bg-surface border rounded-lg p-5 shadow-soft">
+          <h3 className="font-semibold mb-4">Últimos Trabajos</h3>
+          <div className="space-y-2">
+            {(completedJobs ?? []).slice(0, 7).map((job) => (
+              <div key={job.id} className="flex items-center gap-3 text-sm">
+                <div className="w-8 h-8 rounded-md bg-[color:var(--success)]/10 text-[color:var(--success)] grid place-items-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <span className="flex-1 truncate">{job.title}</span>
+                <span className="font-bold text-[color:var(--success)]">{job.earnings}</span>
+                <span className="text-xs text-muted-foreground">
+                  {"⭐".repeat(job.rating)}
+                </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!isLoading && jobCount === 0 && (
+        <div className="bg-surface border rounded-lg p-8 shadow-soft text-center">
+          <p className="text-muted-foreground text-sm">No hay datos de ganancias aún. Completa tu primer trabajo para ver estadísticas.</p>
+        </div>
+      )}
 
       {/* Pro profile card */}
       <div className="bg-surface border rounded-lg shadow-soft p-6 flex items-center gap-5">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-orange-700 grid place-items-center text-white text-xl font-bold">
-          JM
+          {initials}
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-bold tracking-tight">Juan Martínez</h2>
-          <p className="text-sm text-muted-foreground">Técnico Electricista · Nivel Pro</p>
+          <h2 className="text-lg font-bold tracking-tight">{user?.full_name ?? "—"}</h2>
+          <p className="text-sm text-muted-foreground">{memberSince}</p>
           <div className="flex items-center gap-3 mt-2 text-xs">
-            <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> 4.92 (412)</span>
-            <span className="inline-flex items-center gap-1 text-[color:var(--success)]"><Shield className="w-3.5 h-3.5" /> Verificado</span>
-            <span className="inline-flex items-center gap-1"><Award className="w-3.5 h-3.5 text-primary" /> Top 5%</span>
+            <span className="inline-flex items-center gap-1 text-[color:var(--success)]">
+              <Shield className="w-3.5 h-3.5" /> Verificado
+            </span>
+            {jobCount > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Award className="w-3.5 h-3.5 text-primary" /> {jobCount} trabajos
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -180,6 +250,9 @@ function TechProfileView() {
 
 // ─── Admin Profile (Configuración) ───
 function AdminProfileView() {
+  const { user } = useSession();
+  const initials = getInitials(user?.full_name);
+
   const [settingsState, setSettingsState] = useState({
     Notificaciones: true,
     Seguridad: true,
@@ -193,7 +266,7 @@ function AdminProfileView() {
     { icon: Lock, label: "Seguridad" as const, desc: "2FA, sesiones activas" },
     { icon: Globe, label: "Región" as const, desc: "Valencia, Carabobo — Venezuela" },
     { icon: Palette, label: "Tema" as const, desc: "Modo oscuro (Command Center)" },
-    { icon: User, label: "Cuenta Admin" as const, desc: "admin@fixit.pro" },
+    { icon: User, label: "Cuenta Admin" as const, desc: user?.email ?? "—" },
   ];
 
   const handleToggle = (label: keyof typeof settingsState) => {
@@ -214,14 +287,14 @@ function AdminProfileView() {
       {/* Admin profile */}
       <div className="rounded-xl border border-emerald-500/20 bg-white/[0.02] p-6 flex items-center gap-5">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 grid place-items-center text-white text-xl font-bold">
-          AD
+          {initials}
         </div>
         <div>
-          <h2 className="text-lg font-bold text-white">Administrador</h2>
-          <p className="text-sm text-white/50">Super Admin · Acceso total</p>
+          <h2 className="text-lg font-bold text-white">{user?.full_name ?? "Administrador"}</h2>
+          <p className="text-sm text-white/50">{user?.email ?? "—"}</p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-              Nivel máximo
+              Administrador
             </span>
           </div>
         </div>

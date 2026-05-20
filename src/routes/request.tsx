@@ -7,7 +7,7 @@ import { AiScanner } from "@/components/fixit/AiScanner";
 import {
   Zap, Droplet, Snowflake, Hammer, Wrench, Sparkles,
   ChevronLeft, ChevronRight, Check, UploadCloud, MapPin, ImageIcon, X, Cpu,
-  Star, Shield, Award, User, Settings as SettingsIcon, Loader2,
+  Star, Shield, Award, User, Settings as SettingsIcon, Loader2, Mail, Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
@@ -15,7 +15,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useCreateRequest, useUploadImage } from "@/api/hooks";
+import { useCreateRequest, useUploadImage, useCompletedJobs } from "@/api/hooks";
+import { useSession } from "@/components/fixit/SessionProvider";
 import type { RequestCategory } from "@/api/types";
 
 export const Route = createFileRoute("/request")({
@@ -46,12 +47,17 @@ function RequestPage() {
 
 // ─── Technician Pro Profile ───
 function TechProProfile() {
-  const skills = ["Electricidad Residencial", "Electricidad Industrial", "Tableros", "Iluminación LED", "Cableado Estructurado"];
-  const certifications = [
-    { name: "Electricista Certificado Nivel III", year: "2022" },
-    { name: "Seguridad Eléctrica Industrial", year: "2021" },
-    { name: "Instalaciones Fotovoltaicas", year: "2023" },
-  ];
+  const { user } = useSession();
+  const { data: completedJobs, isLoading } = useCompletedJobs();
+
+  const initials = user?.full_name
+    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "??";
+
+  const jobCount = completedJobs?.length ?? 0;
+  const avgRating = jobCount > 0
+    ? (completedJobs!.reduce((s, j) => s + j.rating, 0) / jobCount).toFixed(2)
+    : "—";
 
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-3xl">
@@ -63,61 +69,63 @@ function TechProProfile() {
       {/* Profile card */}
       <div className="bg-surface border rounded-lg shadow-soft p-6 flex items-center gap-5">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent to-orange-700 grid place-items-center text-white text-2xl font-bold">
-          JM
+          {initials}
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold tracking-tight">Juan Martínez</h2>
-          <p className="text-sm text-muted-foreground">Técnico Electricista · Nivel Pro</p>
+          <h2 className="text-xl font-bold tracking-tight">{user?.full_name ?? "—"}</h2>
+          <p className="text-sm text-muted-foreground">{user?.email ?? "—"}</p>
           <div className="flex items-center gap-3 mt-2 text-xs flex-wrap">
-            <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> 4.92 (412 reseñas)</span>
+            <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> {avgRating} ({jobCount} reseñas)</span>
             <span className="inline-flex items-center gap-1 text-[color:var(--success)]"><Shield className="w-3.5 h-3.5" /> Verificado</span>
-            <span className="inline-flex items-center gap-1"><Award className="w-3.5 h-3.5 text-primary" /> Top 5%</span>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          { label: "Trabajos", value: "412" },
-          { label: "Aceptación", value: "96%" },
-          { label: "Resp. media", value: "4 min" },
-          { label: "Repetición", value: "78%" },
-        ].map((s) => (
-          <div key={s.label} className="bg-surface border rounded-lg p-3 shadow-soft text-center">
-            <p className="text-lg font-bold">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Skills */}
-      <div className="bg-surface border rounded-lg shadow-soft p-5">
-        <h3 className="font-semibold mb-3">Habilidades</h3>
-        <div className="flex flex-wrap gap-2">
-          {skills.map((skill) => (
-            <span key={skill} className="px-3 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
-              {skill}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Certifications */}
-      <div className="bg-surface border rounded-lg shadow-soft p-5">
-        <h3 className="font-semibold mb-3">Certificaciones</h3>
-        <div className="space-y-3">
-          {certifications.map((cert) => (
-            <div key={cert.name} className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-accent/10 text-accent grid place-items-center shrink-0">
-                <Award className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">{cert.name}</p>
-                <p className="text-xs text-muted-foreground">{cert.year}</p>
-              </div>
+      <div className="grid grid-cols-3 gap-3">
+        {isLoading ? (
+          <>
+            <div className="bg-surface border rounded-lg p-3 shadow-soft animate-pulse h-16" />
+            <div className="bg-surface border rounded-lg p-3 shadow-soft animate-pulse h-16" />
+            <div className="bg-surface border rounded-lg p-3 shadow-soft animate-pulse h-16" />
+          </>
+        ) : (
+          <>
+            <div className="bg-surface border rounded-lg p-3 shadow-soft text-center">
+              <p className="text-lg font-bold">{jobCount}</p>
+              <p className="text-[10px] text-muted-foreground">Trabajos</p>
             </div>
-          ))}
+            <div className="bg-surface border rounded-lg p-3 shadow-soft text-center">
+              <p className="text-lg font-bold">{avgRating}</p>
+              <p className="text-[10px] text-muted-foreground">Rating</p>
+            </div>
+            <div className="bg-surface border rounded-lg p-3 shadow-soft text-center">
+              <p className="text-lg font-bold">
+                {jobCount > 0
+                  ? `$${(completedJobs!.reduce((s, j) => {
+                      const n = parseFloat(j.earnings.replace(/[^0-9.]/g, ""));
+                      return s + (isNaN(n) ? 0 : n);
+                    }, 0)).toFixed(0)}`
+                  : "—"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Ganado</p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="bg-surface border rounded-lg shadow-soft p-5 space-y-3">
+        <h3 className="font-semibold">Información de Contacto</h3>
+        <div className="flex items-center gap-3 text-sm">
+          <Mail className="w-4 h-4 text-muted-foreground" />
+          <span>{user?.email ?? "—"}</span>
+        </div>
+        <div className="flex items-center gap-3 text-sm">
+          <Phone className="w-4 h-4 text-muted-foreground" />
+          <span className={!user?.phone ? "text-muted-foreground italic" : ""}>
+            {user?.phone || "No especificado"}
+          </span>
         </div>
       </div>
 
