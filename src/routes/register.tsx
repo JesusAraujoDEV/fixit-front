@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   User,
   Mail,
-  Phone,
   Lock,
   Briefcase,
   FileText,
@@ -19,6 +18,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRegister } from "@/api/hooks";
 import { useSession } from "@/components/fixit/SessionProvider";
+import { PhoneInput } from "@/components/fixit/PhoneInput";
 import type { RegisterPayload } from "@/api/hooks";
 
 type RegisterRole = "client" | "technician";
@@ -271,18 +271,10 @@ function RegisterPage() {
               <label htmlFor="phone" className="block text-xs font-medium text-white/60 mb-1.5">
                 Teléfono
               </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+58 412 1234567"
-                  autoComplete="tel"
-                  className="w-full h-11 pl-10 pr-4 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 outline-none focus:border-primary/50 focus:bg-white/[0.07] transition-all"
-                />
-              </div>
+              <PhoneInput
+                value={phone}
+                onChange={(val) => setPhone(val)}
+              />
             </div>
 
             {/* Contraseña */}
