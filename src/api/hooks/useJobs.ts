@@ -82,3 +82,21 @@ export function useToggleAvailability() {
     },
   });
 }
+
+// ─── useAvailabilityStatus ──────────────────────────────────────────────────
+/**
+ * Query para obtener el estado actual de disponibilidad del técnico.
+ * GET /technician/availability
+ */
+export function useAvailabilityStatus() {
+  return useQuery<AvailabilityResponse>({
+    queryKey: jobKeys.availability,
+    queryFn: async () => {
+      const { data } = await httpClient.get<AvailabilityResponse>(
+        "/technician/availability",
+      );
+      return data;
+    },
+    staleTime: 30_000,
+  });
+}

@@ -25,6 +25,7 @@ export {
   useAvailableJobs,
   useCompletedJobs,
   useToggleAvailability,
+  useAvailabilityStatus,
   jobKeys,
 } from "./useJobs";
 

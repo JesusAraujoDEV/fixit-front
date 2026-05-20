@@ -182,7 +182,7 @@ function TechJobsView() {
                 <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-24" />
               ))
             : jobs.length > 0
-              ? jobs.map((j) => <JobCard key={j.id} job={j} />)
+              ? jobs.map((j) => <JobCard key={j.id} job={j} onAccept={(id) => toast.info("Trabajo aceptado", { description: "Función de aceptación directa en construcción." })} />)
               : <p className="text-sm text-muted-foreground col-span-2">No hay trabajos disponibles en este momento.</p>}
         </div>
       </div>

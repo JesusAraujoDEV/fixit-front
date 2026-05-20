@@ -12,6 +12,7 @@ import {
   useAvailableJobs,
   useCompletedJobs,
   useToggleAvailability,
+  useAvailabilityStatus,
   useMissionAlerts,
   useTracking,
 } from "@/api/hooks";
@@ -31,13 +32,16 @@ const DEFAULT_LAT = 10.1910;
 const DEFAULT_LNG = -68.0130;
 
 function ProView() {
-  const [online, setOnline] = useState(false);
   const [userCoords, setUserCoords] = useState({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
 
   const toggleAvailability = useToggleAvailability();
+  const { data: availabilityData } = useAvailabilityStatus();
   const { startEmitting, stopEmitting } = useTracking();
   const { status: missionStatus, currentOffer, secondsLeft, acceptMission, rejectMission } =
     useMissionAlerts();
+
+  // Derivar estado online del backend (persiste entre navegaciones)
+  const online = availabilityData?.online ?? false;
 
   // Fetch available jobs when online
   const { data: availableJobs, isLoading: jobsLoading } = useAvailableJobs(
@@ -61,7 +65,7 @@ function ProView() {
         online: newState,
         ...(newState ? { lat: userCoords.lat, lng: userCoords.lng } : {}),
       });
-      setOnline(newState);
+      // El estado se actualiza automáticamente via queryClient.setQueryData en la mutation
       if (newState) {
         startEmitting();
         toast.success("¡Estás en línea!", { description: "Recibirás solicitudes cercanas." });
@@ -69,8 +73,12 @@ function ProView() {
         stopEmitting();
         toast.info("Fuera de servicio", { description: "No recibirás nuevas solicitudes." });
       }
-    } catch {
-      toast.error("Error al cambiar disponibilidad");
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.response?.data?.error || error?.message;
+      toast.error("Error al cambiar disponibilidad", {
+        description: `${status ? `[${status}] ` : ""}${message || "Verifica tu conexión e intenta de nuevo."}`,
+      });
     }
   };
 
@@ -83,6 +91,10 @@ function ProView() {
     rejectMission();
     toast.error("Misión rechazada", { description: "Se asignará a otro técnico." });
   }, [rejectMission]);
+
+  const handleJobAccept = useCallback((jobId: string) => {
+    toast.info("Aceptando trabajo…", { description: `Job ${jobId} — Función de aceptación directa en construcción. Usa las alertas de misión.` });
+  }, []);
 
   // Map jobs from API to JobCard format
   const jobs: Job[] = (availableJobs ?? []).map((j) => ({
@@ -206,8 +218,8 @@ function ProView() {
         </div>
 
         <div className="grid lg:grid-cols-5 gap-5">
-          {/* Map */}
-          <div className="lg:col-span-3 bg-surface border rounded-xl shadow-soft overflow-hidden">
+          {/* Map — sticky on desktop */}
+          <div className="lg:col-span-3 lg:sticky lg:top-20 lg:self-start bg-surface border rounded-xl shadow-soft overflow-hidden">
             <div className="px-4 py-3 border-b flex items-center justify-between">
               <div>
                 <h2 className="font-semibold tracking-tight">Tu Zona</h2>
@@ -260,7 +272,7 @@ function ProView() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.1 }}
                       >
-                        <JobCard job={j} />
+                        <JobCard job={j} onAccept={handleJobAccept} />
                       </motion.div>
                     ))
                   : online && (

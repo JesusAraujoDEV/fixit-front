@@ -1,5 +1,6 @@
 import { Clock, MapPin, ChevronRight, Zap, Droplet, Snowflake, Hammer, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 
 export type Job = {
@@ -92,11 +93,14 @@ export function JobCard({ job, onAccept }: { job: Job; onAccept?: (id: string) =
       </div>
 
       <div className="flex gap-2 mt-4">
-        <button className="flex-1 h-10 rounded-md border bg-surface text-sm font-medium hover:bg-muted transition-colors inline-flex items-center justify-center gap-1">
+        <button
+          onClick={() => toast.info(`${job.title}`, { description: `${displayCategory} · ${job.distanceKm.toFixed(1)} km · Pago: ${job.payout}. Vista de detalles en construcción.` })}
+          className="flex-1 h-10 rounded-md border bg-surface text-sm font-medium hover:bg-muted transition-colors inline-flex items-center justify-center gap-1"
+        >
           Detalles <ChevronRight className="w-4 h-4" />
         </button>
         <button
-          onClick={() => onAccept?.(job.id)}
+          onClick={() => onAccept ? onAccept(job.id) : toast.info("Aceptar trabajo", { description: "Función disponible desde las alertas de misión." })}
           className="flex-1 h-10 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow-soft hover:opacity-95 transition-opacity"
         >
           Aceptar
