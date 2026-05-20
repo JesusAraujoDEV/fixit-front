@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import {
   Star, Award, Shield, CheckCircle2, User, Mail, Phone, MapPin,
   DollarSign, TrendingUp, Calendar, Clock, Bell, Lock, Palette, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -178,13 +180,29 @@ function TechProfileView() {
 
 // ─── Admin Profile (Configuración) ───
 function AdminProfileView() {
+  const [settingsState, setSettingsState] = useState({
+    Notificaciones: true,
+    Seguridad: true,
+    Región: false,
+    Tema: true,
+    "Cuenta Admin": false,
+  });
+
   const settings = [
-    { icon: Bell, label: "Notificaciones", desc: "Alertas de fraude, nuevos técnicos", active: true },
-    { icon: Lock, label: "Seguridad", desc: "2FA, sesiones activas", active: true },
-    { icon: Globe, label: "Región", desc: "Valencia, Carabobo — Venezuela", active: false },
-    { icon: Palette, label: "Tema", desc: "Modo oscuro (Command Center)", active: true },
-    { icon: User, label: "Cuenta Admin", desc: "admin@fixit.pro", active: false },
+    { icon: Bell, label: "Notificaciones" as const, desc: "Alertas de fraude, nuevos técnicos" },
+    { icon: Lock, label: "Seguridad" as const, desc: "2FA, sesiones activas" },
+    { icon: Globe, label: "Región" as const, desc: "Valencia, Carabobo — Venezuela" },
+    { icon: Palette, label: "Tema" as const, desc: "Modo oscuro (Command Center)" },
+    { icon: User, label: "Cuenta Admin" as const, desc: "admin@fixit.pro" },
   ];
+
+  const handleToggle = (label: keyof typeof settingsState) => {
+    const newValue = !settingsState[label];
+    setSettingsState((prev) => ({ ...prev, [label]: newValue }));
+    toast.info(`${label}: ${newValue ? "Activado" : "Desactivado"}`, {
+      description: "Configuración guardada (integración pendiente).",
+    });
+  };
 
   return (
     <section className="px-4 md:px-6 py-6 space-y-5 max-w-3xl">
@@ -217,6 +235,7 @@ function AdminProfileView() {
         <div className="divide-y divide-white/5">
           {settings.map((s) => {
             const Icon = s.icon;
+            const active = settingsState[s.label];
             return (
               <div key={s.label} className="flex items-center gap-4 px-4 py-4 hover:bg-white/[0.02]">
                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 grid place-items-center shrink-0">
@@ -226,15 +245,20 @@ function AdminProfileView() {
                   <p className="text-sm font-medium text-white">{s.label}</p>
                   <p className="text-xs text-white/40">{s.desc}</p>
                 </div>
-                <div className={cn(
-                  "w-10 h-6 rounded-full relative transition-colors",
-                  s.active ? "bg-emerald-500" : "bg-white/10"
-                )}>
+                <button
+                  onClick={() => handleToggle(s.label)}
+                  role="switch"
+                  aria-checked={active}
+                  className={cn(
+                    "w-10 h-6 rounded-full relative transition-colors cursor-pointer",
+                    active ? "bg-emerald-500" : "bg-white/10"
+                  )}
+                >
                   <span className={cn(
                     "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-                    s.active ? "left-[18px]" : "left-0.5"
+                    active ? "left-[18px]" : "left-0.5"
                   )} />
-                </div>
+                </button>
               </div>
             );
           })}

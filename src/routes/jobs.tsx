@@ -7,6 +7,7 @@ import {
   Search, Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   useMyRequests,
   useAvailableJobs,
@@ -151,7 +152,10 @@ function TechJobsView() {
           </p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Mis Trabajos</h1>
         </div>
-        <button className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted">
+        <button
+          onClick={() => toast.info("Filtros avanzados en construcción", { description: "Pronto podrás filtrar por distancia, categoría y urgencia." })}
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md border text-sm font-medium hover:bg-muted"
+        >
           <Filter className="w-4 h-4" /> Filtrar
         </button>
       </header>

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useSession } from "@/components/fixit/SessionProvider";
 
 export const Route = createFileRoute("/")({
@@ -335,13 +336,13 @@ function LandingPage() {
             <span>FixHub © 2025 — Todos los derechos reservados</span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-white/70 transition-colors">
+            <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Términos y condiciones en construcción"); }} className="hover:text-white/70 transition-colors">
               Términos
             </a>
-            <a href="#" className="hover:text-white/70 transition-colors">
+            <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Política de privacidad en construcción"); }} className="hover:text-white/70 transition-colors">
               Privacidad
             </a>
-            <a href="#" className="hover:text-white/70 transition-colors">
+            <a href="#" onClick={(e) => { e.preventDefault(); toast.info("Soporte en construcción", { description: "Pronto podrás contactarnos directamente." }); }} className="hover:text-white/70 transition-colors">
               Soporte
             </a>
           </div>

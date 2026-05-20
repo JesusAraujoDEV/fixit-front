@@ -18,11 +18,13 @@ import {
   Users,
   FileWarning,
   Settings,
+  Inbox,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSession } from "./SessionProvider";
+import { toast } from "sonner";
 import type { UserRole } from "@/api/types";
 
 // Re-export a simple hook that returns just the role for backward compat
@@ -91,10 +93,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { role, isAuthenticated, user, logout } = useSession();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const nav = getNavForRole(role);
   const isAdmin = role === "admin";
   const RoleIcon = getRoleIcon(role);
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    if (notifOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
 
   // Redirigir a login si no está autenticado
   useEffect(() => {
@@ -239,6 +256,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 : role === "technician" ? "Buscar trabajos, clientes…"
                 : "Buscar técnicos, servicios…"
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  toast.info("Búsqueda en construcción", { description: "La búsqueda global estará disponible pronto." });
+                }
+              }}
               className={cn(
                 "w-full h-10 pl-9 pr-3 rounded-md border border-transparent text-sm outline-none transition",
                 isAdmin
@@ -248,13 +271,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button className={cn(
-              "relative w-10 h-10 grid place-items-center rounded-md",
-              isAdmin ? "hover:bg-white/5 text-white/70" : "hover:bg-muted"
-            )}>
-              <Bell className="w-5 h-5" />
-              <span className={cn("absolute top-2 right-2 w-2 h-2 rounded-full", isAdmin ? "bg-emerald-400" : "bg-accent")} />
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen((prev) => !prev)}
+                className={cn(
+                  "relative w-10 h-10 grid place-items-center rounded-md transition-colors",
+                  isAdmin ? "hover:bg-white/5 text-white/70" : "hover:bg-muted"
+                )}
+                aria-label="Notificaciones"
+                aria-expanded={notifOpen}
+              >
+                <Bell className="w-5 h-5" />
+                <span className={cn("absolute top-2 right-2 w-2 h-2 rounded-full", isAdmin ? "bg-emerald-400" : "bg-accent")} />
+              </button>
+
+              {/* Notification Dropdown */}
+              <AnimatePresence>
+                {notifOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className={cn(
+                      "absolute right-0 top-12 w-80 rounded-lg border shadow-elevated z-50 overflow-hidden",
+                      isAdmin ? "bg-[#161b22] border-emerald-500/20" : "bg-surface border-border"
+                    )}
+                  >
+                    <div className={cn(
+                      "px-4 py-3 border-b flex items-center justify-between",
+                      isAdmin ? "border-emerald-500/10" : "border-border"
+                    )}>
+                      <h3 className={cn("font-semibold text-sm", isAdmin ? "text-white" : "text-foreground")}>
+                        Notificaciones
+                      </h3>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
+                        isAdmin ? "bg-emerald-500/15 text-emerald-400" : "bg-primary/10 text-primary"
+                      )}>
+                        Próximamente
+                      </span>
+                    </div>
+                    <div className="px-4 py-8 flex flex-col items-center gap-2">
+                      <Inbox className={cn("w-10 h-10", isAdmin ? "text-white/20" : "text-muted-foreground/40")} />
+                      <p className={cn("text-sm font-medium", isAdmin ? "text-white/60" : "text-muted-foreground")}>
+                        No tienes notificaciones nuevas
+                      </p>
+                      <p className={cn("text-xs text-center", isAdmin ? "text-white/30" : "text-muted-foreground/70")}>
+                        Las alertas de servicio y actualizaciones aparecerán aquí.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <button
               onClick={handleLogout}
               className={cn(

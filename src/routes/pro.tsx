@@ -239,7 +239,10 @@ function ProView() {
                   {online ? `${jobs.length} disponibles` : "Activa modo en línea"}
                 </p>
               </div>
-              <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium hover:bg-muted">
+              <button
+                onClick={() => toast.info("Filtros en construcción", { description: "Pronto podrás filtrar solicitudes por categoría y distancia." })}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-xs font-medium hover:bg-muted"
+              >
                 <ListFilter className="w-3.5 h-3.5" /> Filtros
               </button>
             </div>

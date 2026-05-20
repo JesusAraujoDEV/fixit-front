@@ -10,8 +10,10 @@ import {
   CheckCircle2,
   Clock,
   ArrowUpRight,
+  Radar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useRadarSearch, useTechnicianMarkers, useRequestMarkers } from "@/api/hooks";
 
 export const Route = createFileRoute("/dashboard")({
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 function Dashboard() {
-  const { status: radarStatus, startSearch } = useRadarSearch();
+  const { status: radarStatus } = useRadarSearch();
 
   // Datos que el cliente SÍ puede consultar
   const defaultGeo = { lat: 10.1910, lng: -68.0130, radius_km: 10 };
@@ -60,6 +62,21 @@ function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                toast.info("Radar de búsqueda", { description: "Crea una solicitud para activar el radar y encontrar técnicos cercanos." });
+              }}
+              disabled={searching}
+              className={cn(
+                "inline-flex items-center gap-2 h-10 px-4 rounded-md text-sm font-semibold shadow-soft hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed",
+                searching
+                  ? "bg-accent/15 text-accent border border-accent/30"
+                  : "bg-accent text-accent-foreground"
+              )}
+            >
+              <Radar className="w-4 h-4" />
+              {searching ? "Buscando…" : "Buscar Técnicos"}
+            </button>
             <Link
               to="/request"
               className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold shadow-soft hover:opacity-95"

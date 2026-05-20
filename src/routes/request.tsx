@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import { MapCanvas } from "@/components/fixit/MapCanvas";
@@ -7,13 +7,16 @@ import { AiScanner } from "@/components/fixit/AiScanner";
 import {
   Zap, Droplet, Snowflake, Hammer, Wrench, Sparkles,
   ChevronLeft, ChevronRight, Check, UploadCloud, MapPin, ImageIcon, X, Cpu,
-  Star, Shield, Award, User, Settings as SettingsIcon,
+  Star, Shield, Award, User, Settings as SettingsIcon, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LucideIcon } from "lucide-react";
+import { toast } from "sonner";
+import { useCreateRequest, useUploadImage } from "@/api/hooks";
+import type { RequestCategory } from "@/api/types";
 
 export const Route = createFileRoute("/request")({
   head: () => ({
@@ -119,7 +122,10 @@ function TechProProfile() {
       </div>
 
       {/* Edit button */}
-      <button className="w-full h-11 rounded-md border text-sm font-medium hover:bg-muted transition inline-flex items-center justify-center gap-2">
+      <button
+        onClick={() => toast.info("Edición de perfil en construcción", { description: "Pronto podrás actualizar tus habilidades y certificaciones." })}
+        className="w-full h-11 rounded-md border text-sm font-medium hover:bg-muted transition inline-flex items-center justify-center gap-2"
+      >
         <SettingsIcon className="w-4 h-4" /> Editar Perfil Profesional
       </button>
     </section>
@@ -193,11 +199,13 @@ function LocationPicker({
 }
 
 function RequestWizard() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [need, setNeed] = useState("");
   const [cat, setCat] = useState<string | null>("electrical");
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [scanning, setScanning] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number }>({
     lat: 10.1910,
@@ -205,14 +213,68 @@ function RequestWizard() {
   });
   const [pickingLocation, setPickingLocation] = useState(false);
 
+  const createRequest = useCreateRequest();
+  const uploadImage = useUploadImage();
+
+  const isSubmitting = createRequest.isPending || uploadImage.isPending;
+
   const next = () => setStep((s) => Math.min(2, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
-    const urls = Array.from(files).slice(0, 4 - images.length).map((f) => URL.createObjectURL(f));
+    const newFiles = Array.from(files).slice(0, 4 - images.length);
+    const urls = newFiles.map((f) => URL.createObjectURL(f));
     setImages((prev) => [...prev, ...urls]);
+    setImageFiles((prev) => [...prev, ...newFiles]);
     setScanning(true);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((arr) => arr.filter((_, j) => j !== index));
+    setImageFiles((arr) => arr.filter((_, j) => j !== index));
+  };
+
+  const handlePublish = async () => {
+    // Validaciones
+    if (!need.trim()) {
+      toast.error("Título requerido", { description: "Describe qué necesitas reparar." });
+      return;
+    }
+    if (!cat) {
+      toast.error("Categoría requerida", { description: "Selecciona una categoría de servicio." });
+      return;
+    }
+
+    try {
+      // 1. Subir imágenes si hay
+      let uploadedUrls: string[] = [];
+      if (imageFiles.length > 0) {
+        const uploadPromises = imageFiles.map((file) => uploadImage.mutateAsync(file));
+        const results = await Promise.all(uploadPromises);
+        uploadedUrls = results.map((r) => r.url);
+      }
+
+      // 2. Crear la solicitud
+      const result = await createRequest.mutateAsync({
+        title: need.trim(),
+        description: desc.trim() || undefined,
+        category: cat as RequestCategory,
+        images: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+        latitude: location.lat,
+        longitude: location.lng,
+      });
+
+      toast.success("¡Solicitud publicada!", {
+        description: `${result.nearby_technicians_count} técnicos cercanos notificados. Respuesta estimada: ~${result.estimated_response_min} min.`,
+      });
+
+      // Navegar al historial de solicitudes
+      navigate({ to: "/jobs" });
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || "Intenta de nuevo más tarde.";
+      toast.error("Error al publicar solicitud", { description: message });
+    }
   };
 
   const selectedCat = CATEGORIES.find((c) => c.key === cat);
@@ -398,7 +460,7 @@ function RequestWizard() {
                         <div key={i} className="relative aspect-square rounded-md overflow-hidden border group">
                           <img src={src} alt="" className="w-full h-full object-cover" />
                           <button
-                            onClick={() => setImages((arr) => arr.filter((_, j) => j !== i))}
+                            onClick={() => handleRemoveImage(i)}
                             className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -495,8 +557,20 @@ function RequestWizard() {
                 Continuar <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow-elevated hover:opacity-95">
-                Publicar Solicitud <Check className="w-4 h-4" />
+              <button
+                onClick={handlePublish}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-primary text-primary-foreground font-semibold text-sm shadow-elevated hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Publicando…
+                  </>
+                ) : (
+                  <>
+                    Publicar Solicitud <Check className="w-4 h-4" />
+                  </>
+                )}
               </button>
             )}
           </div>
