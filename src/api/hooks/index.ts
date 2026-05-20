@@ -17,6 +17,9 @@ export {
   useMyRequests,
   useUploadImage,
   useAiDiagnose,
+  useCompleteRequest,
+  useRateTechnician,
+  useRateClient,
   requestKeys,
 } from "./useRequests";
 

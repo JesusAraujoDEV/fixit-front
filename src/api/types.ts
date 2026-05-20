@@ -106,6 +106,26 @@ export interface ClientRequest {
   images?: string[];
 }
 
+// ─── Request Actions (Complete & Rate) ──────────────────────────────────────
+
+export interface CompleteRequestResponse {
+  id: string;
+  status: "completed";
+  updated_at: string;
+}
+
+export interface RatePayload {
+  rating: number;
+  comment?: string;
+}
+
+export interface RateResponse {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
 // ─── Jobs (Technician) ──────────────────────────────────────────────────────
 
 export interface AvailableJob {

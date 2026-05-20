@@ -93,3 +93,59 @@ export function useAiDiagnose() {
     },
   });
 }
+
+// ─── useCompleteRequest ─────────────────────────────────────────────────────
+/**
+ * Mutation para que el cliente marque una solicitud como completada.
+ * POST /requests/:id/complete
+ */
+export function useCompleteRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await httpClient.post<{ id: string; status: "completed"; updated_at: string }>(
+        `/requests/${requestId}/complete`,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["requests", "mine"] });
+      queryClient.invalidateQueries({ queryKey: ["user-stats"] });
+    },
+  });
+}
+
+// ─── useRateTechnician ──────────────────────────────────────────────────────
+/**
+ * Mutation para que el cliente califique al técnico después de completar.
+ * POST /requests/:id/rate
+ */
+export function useRateTechnician() {
+  return useMutation({
+    mutationFn: async ({ requestId, rating, comment }: { requestId: string; rating: number; comment?: string }) => {
+      const { data } = await httpClient.post<{ id: string; rating: number; comment: string | null; created_at: string }>(
+        `/requests/${requestId}/rate`,
+        { rating, comment },
+      );
+      return data;
+    },
+  });
+}
+
+// ─── useRateClient ──────────────────────────────────────────────────────────
+/**
+ * Mutation para que el técnico califique al cliente.
+ * POST /requests/:id/rate-client
+ */
+export function useRateClient() {
+  return useMutation({
+    mutationFn: async ({ requestId, rating, comment }: { requestId: string; rating: number; comment?: string }) => {
+      const { data } = await httpClient.post<{ id: string; rating: number; comment: string | null; created_at: string }>(
+        `/requests/${requestId}/rate-client`,
+        { rating, comment },
+      );
+      return data;
+    },
+  });
+}
