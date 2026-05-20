@@ -233,6 +233,10 @@ function RequestWizard() {
         toast.error("Título requerido", { description: "Describe qué necesitas reparar antes de continuar." });
         return;
       }
+      if (need.trim().length < 5) {
+        toast.error("Título muy corto", { description: "El título debe tener al menos 5 caracteres." });
+        return;
+      }
       if (!cat) {
         toast.error("Categoría requerida", { description: "Selecciona una categoría de servicio." });
         return;
@@ -258,17 +262,32 @@ function RequestWizard() {
 
   const handlePublish = async () => {
     // Usar descripción como fallback si el título está vacío
-    const title = need.trim() || desc.trim().slice(0, 100);
+    const title = need.trim() || desc.trim().slice(0, 200);
 
-    // Validaciones
-    if (!title) {
-      toast.error("Título requerido", { description: "Vuelve al paso 1 y describe qué necesitas reparar." });
+    // Validaciones del frontend (mismas reglas que el backend)
+    if (!title || title.length < 5) {
+      toast.error("Título muy corto", { description: "El título debe tener al menos 5 caracteres. Vuelve al paso 1." });
+      setStep(0);
+      return;
+    }
+    if (title.length > 200) {
+      toast.error("Título muy largo", { description: "El título no puede exceder 200 caracteres." });
       setStep(0);
       return;
     }
     if (!cat) {
       toast.error("Categoría requerida", { description: "Vuelve al paso 1 y selecciona una categoría." });
       setStep(0);
+      return;
+    }
+    if (!location.lat || !location.lng) {
+      toast.error("Ubicación requerida", { description: "Selecciona una ubicación en el mapa (paso 1)." });
+      setStep(0);
+      return;
+    }
+    if (imageFiles.length > 4) {
+      toast.error("Máximo 4 imágenes", { description: "Elimina algunas imágenes antes de publicar." });
+      setStep(1);
       return;
     }
 
@@ -298,8 +317,17 @@ function RequestWizard() {
       // Navegar al historial de solicitudes
       navigate({ to: "/jobs" });
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || "Intenta de nuevo más tarde.";
-      toast.error("Error al publicar solicitud", { description: message });
+      // Parsear error 422 del backend con detalle de campos
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+
+      if (status === 422 && data?.errors?.length) {
+        const fieldErrors = data.errors.map((e: { field: string; message: string }) => `${e.field}: ${e.message}`).join(". ");
+        toast.error(data.error || "Error de validación", { description: fieldErrors });
+      } else {
+        const message = data?.message || data?.error || error?.message || "Intenta de nuevo más tarde.";
+        toast.error("Error al publicar solicitud", { description: message });
+      }
     }
   };
 
