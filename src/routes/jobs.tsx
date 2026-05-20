@@ -16,6 +16,7 @@ import {
   useTransactionsSummary,
   useCompleteRequest,
   useRateTechnician,
+  useRateClient,
 } from "@/api/hooks";
 import type { RequestStatus } from "@/api/types";
 
@@ -218,6 +219,24 @@ function TechJobsView() {
     lng: -68.0130,
   });
   const { data: completedJobs, isLoading: loadingCompleted } = useCompletedJobs();
+  const rateClient = useRateClient();
+  const [ratingFor, setRatingFor] = useState<string | null>(null);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingComment, setRatingComment] = useState("");
+
+  const handleRateClient = async () => {
+    if (!ratingFor) return;
+    try {
+      await rateClient.mutateAsync({ requestId: ratingFor, rating: ratingValue, comment: ratingComment.trim() || undefined });
+      toast.success("¡Calificación enviada!", { description: `${ratingValue} estrella${ratingValue > 1 ? "s" : ""} al cliente.` });
+      setRatingFor(null);
+      setRatingValue(5);
+      setRatingComment("");
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.response?.data?.error || "Intenta de nuevo.";
+      toast.error("Error al calificar", { description: msg });
+    }
+  };
 
   const jobs: Job[] = (availableJobs ?? []).map((j) => ({
     id: j.id,
@@ -275,20 +294,62 @@ function TechJobsView() {
                 <div key={i} className="bg-surface border rounded-lg p-4 shadow-soft animate-pulse h-16" />
               ))
             : (completedJobs ?? []).map((job) => (
-                <div key={job.id} className="bg-surface border rounded-lg p-4 shadow-soft flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-md bg-[color:var(--success)]/10 text-[color:var(--success)] grid place-items-center shrink-0">
-                    <CheckCircle2 className="w-5 h-5" />
+                <div key={job.id} className="bg-surface border rounded-lg p-4 shadow-soft">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-md bg-[color:var(--success)]/10 text-[color:var(--success)] grid place-items-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{job.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(job.completed_at).toLocaleDateString("es-VE")}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-[color:var(--success)]">{job.earnings}</p>
+                      {job.rating > 0 ? (
+                        <p className="text-xs text-muted-foreground">{"⭐".repeat(job.rating)}</p>
+                      ) : (
+                        <button
+                          onClick={() => setRatingFor(ratingFor === job.id ? null : job.id)}
+                          className="text-[10px] font-semibold text-primary hover:underline"
+                        >
+                          Calificar cliente
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{job.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(job.completed_at).toLocaleDateString("es-VE")}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold text-[color:var(--success)]">{job.earnings}</p>
-                    <p className="text-xs text-muted-foreground">{"⭐".repeat(job.rating)}</p>
-                  </div>
+                  {/* Rating inline form */}
+                  {ratingFor === job.id && (
+                    <div className="mt-3 pt-3 border-t space-y-3">
+                      <p className="text-xs font-semibold">¿Cómo fue el cliente?</p>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setRatingValue(star)}
+                            className="p-0.5"
+                          >
+                            <Star className={cn("w-6 h-6 transition-colors", star <= ratingValue ? "fill-accent text-accent" : "text-muted-foreground/30")} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={ratingComment}
+                        onChange={(e) => setRatingComment(e.target.value)}
+                        placeholder="Comentario opcional…"
+                        rows={2}
+                        className="w-full p-2 rounded-md bg-muted border border-transparent text-xs resize-none outline-none focus:border-ring"
+                      />
+                      <button
+                        onClick={handleRateClient}
+                        disabled={rateClient.isPending}
+                        className="w-full h-9 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
+                      >
+                        {rateClient.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Enviar calificación"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
           {!loadingCompleted && completedJobs?.length === 0 && (
