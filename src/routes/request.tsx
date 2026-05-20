@@ -218,7 +218,20 @@ function RequestWizard() {
 
   const isSubmitting = createRequest.isPending || uploadImage.isPending;
 
-  const next = () => setStep((s) => Math.min(2, s + 1));
+  const next = () => {
+    // Validar paso actual antes de avanzar
+    if (step === 0) {
+      if (!need.trim()) {
+        toast.error("Título requerido", { description: "Describe qué necesitas reparar antes de continuar." });
+        return;
+      }
+      if (!cat) {
+        toast.error("Categoría requerida", { description: "Selecciona una categoría de servicio." });
+        return;
+      }
+    }
+    setStep((s) => Math.min(2, s + 1));
+  };
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const handleFiles = (files: FileList | null) => {
@@ -236,13 +249,18 @@ function RequestWizard() {
   };
 
   const handlePublish = async () => {
+    // Usar descripción como fallback si el título está vacío
+    const title = need.trim() || desc.trim().slice(0, 100);
+
     // Validaciones
-    if (!need.trim()) {
-      toast.error("Título requerido", { description: "Describe qué necesitas reparar." });
+    if (!title) {
+      toast.error("Título requerido", { description: "Vuelve al paso 1 y describe qué necesitas reparar." });
+      setStep(0);
       return;
     }
     if (!cat) {
-      toast.error("Categoría requerida", { description: "Selecciona una categoría de servicio." });
+      toast.error("Categoría requerida", { description: "Vuelve al paso 1 y selecciona una categoría." });
+      setStep(0);
       return;
     }
 
@@ -257,7 +275,7 @@ function RequestWizard() {
 
       // 2. Crear la solicitud
       const result = await createRequest.mutateAsync({
-        title: need.trim(),
+        title,
         description: desc.trim() || undefined,
         category: cat as RequestCategory,
         images: uploadedUrls.length > 0 ? uploadedUrls : undefined,
