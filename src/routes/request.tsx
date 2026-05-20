@@ -57,8 +57,8 @@ function TechProProfile() {
     : "??";
 
   const jobCount = completedJobs?.length ?? 0;
-  const avgRating = techProfile?.rating_average
-    ? techProfile.rating_average.toFixed(2)
+  const avgRating = techProfile?.rating_average != null
+    ? Number(techProfile.rating_average).toFixed(2)
     : jobCount > 0
       ? (completedJobs!.reduce((s, j) => s + j.rating, 0) / jobCount).toFixed(2)
       : "—";

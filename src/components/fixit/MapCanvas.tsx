@@ -73,11 +73,13 @@ export function MapCanvas({
   };
 
   // Fetch real markers from API
+  // Cliente (variant="requests"): muestra técnicos disponibles
+  // Técnico (variant="technicians"): muestra solicitudes pendientes
   const { data: technicians } = useTechnicianMarkers(
-    variant === "requests" || variant === "dark" ? defaultParams : null,
+    variant === "requests" ? defaultParams : null,
   );
   const { data: requests } = useRequestMarkers(
-    variant === "requests" || variant === "technicians" || variant === "dark" ? defaultParams : null,
+    variant === "technicians" ? defaultParams : null,
   );
 
   if (offline) {
