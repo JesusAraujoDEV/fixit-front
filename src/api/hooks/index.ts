@@ -48,3 +48,7 @@ export { useMissionAlerts } from "./useMissionAlerts";
 export type { MissionStatus } from "./useMissionAlerts";
 
 export { useTracking } from "./useTracking";
+
+// User Stats
+export { useUserStats, userStatsKeys } from "./useUserStats";
+export type { UserStats } from "./useUserStats";

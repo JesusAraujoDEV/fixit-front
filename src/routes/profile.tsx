@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, useUserRole } from "@/components/fixit/AppShell";
 import { useSession } from "@/components/fixit/SessionProvider";
-import { useMyRequests, useCompletedJobs } from "@/api/hooks";
+import { useUserStats, useCompletedJobs } from "@/api/hooks";
 import {
   Star, Award, Shield, CheckCircle2, User, Mail, Phone, MapPin,
   DollarSign, TrendingUp, Calendar, Clock, Bell, Lock, Palette, Globe,
@@ -49,8 +49,7 @@ function StatSkeleton() {
 // ─── Client Profile ───
 function ClientProfileView() {
   const { user } = useSession();
-  const { data: activeRequests, isLoading: loadingActive } = useMyRequests("active");
-  const { data: completedRequests, isLoading: loadingCompleted } = useMyRequests("completed");
+  const { data: stats, isLoading } = useUserStats();
 
   const initials = getInitials(user?.full_name);
   const memberSince = formatMemberSince(user?.created_at, "client");
@@ -80,7 +79,7 @@ function ClientProfileView() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        {loadingActive || loadingCompleted ? (
+        {isLoading ? (
           <>
             <StatSkeleton />
             <StatSkeleton />
@@ -90,20 +89,22 @@ function ClientProfileView() {
           <>
             <div className="bg-surface border rounded-lg p-4 shadow-soft">
               <Calendar className="w-4 h-4 text-primary" />
-              <p className="text-lg font-bold mt-2">
-                {(activeRequests?.length ?? 0) + (completedRequests?.length ?? 0)}
-              </p>
+              <p className="text-lg font-bold mt-2">{stats?.total_requests ?? 0}</p>
               <p className="text-xs text-muted-foreground">Solicitudes</p>
             </div>
             <div className="bg-surface border rounded-lg p-4 shadow-soft">
               <CheckCircle2 className="w-4 h-4 text-[var(--success)]" />
-              <p className="text-lg font-bold mt-2">{completedRequests?.length ?? 0}</p>
+              <p className="text-lg font-bold mt-2">{stats?.completed_requests ?? 0}</p>
               <p className="text-xs text-muted-foreground">Completadas</p>
             </div>
             <div className="bg-surface border rounded-lg p-4 shadow-soft">
               <Star className="w-4 h-4 text-accent" />
-              <p className="text-lg font-bold mt-2 text-muted-foreground text-sm">—</p>
-              <p className="text-xs text-muted-foreground">Rating</p>
+              <p className="text-lg font-bold mt-2">
+                {stats?.rating_average ? stats.rating_average.toFixed(1) : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Rating {stats?.total_reviews ? `(${stats.total_reviews})` : ""}
+              </p>
             </div>
           </>
         )}
