@@ -103,6 +103,7 @@ export interface ClientRequest {
   created_at: string;
   price: string | null;
   eta_minutes?: number;
+  images?: string[];
 }
 
 // ─── Jobs (Technician) ──────────────────────────────────────────────────────

@@ -82,6 +82,16 @@ function ClientJobsView() {
           : requests?.map((req) => (
               <div key={req.id} className="bg-surface border rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow">
                 <div className="flex items-start justify-between gap-3">
+                  {/* Thumbnail */}
+                  {req.images && req.images.length > 0 && (
+                    <div className="w-16 h-16 rounded-md overflow-hidden border shrink-0">
+                      <img
+                        src={req.images[0]}
+                        alt={req.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
